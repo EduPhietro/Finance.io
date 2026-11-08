@@ -1,120 +1,167 @@
-# finance.io
+# Finance.io
 
-Aplicação de **gestão financeira pessoal** desenvolvida como projeto acadêmico. O objetivo é permitir que o usuário registre e acompanhe suas receitas, despesas, meios de pagamento, compras recorrentes no cartão de crédito e boletos, tendo uma visão clara da sua saúde financeira.
+Aplicação acadêmica de gestão financeira pessoal para registrar receitas e
+despesas, organizar movimentações por conta e categoria e acompanhar saldos em
+uma visão consolidada.
 
-> **Status:** escopo inicial — sujeito a revisão conforme o projeto evoluir.
+> **Status:** projeto em fase inicial. O domínio do MVP está documentado, mas a
+> aplicação ainda não possui API, interface ou persistência implementadas. O
+> ponto de entrada atual apenas confirma que o ambiente Python está funcionando.
 
----
+## Escopo do MVP
 
-## 1. Objetivos
+O MVP prevê:
 
-- Centralizar em um só lugar todas as entradas e saídas de dinheiro do usuário.
-- Dar visibilidade sobre para onde o dinheiro está indo (categorias, meios de pagamento, períodos).
-- Ajudar a evitar atrasos com lembretes de vencimento de boletos e faturas.
-- Oferecer uma base simples e extensível, adequada ao contexto de um projeto de faculdade.
+- cadastro e manutenção de contas bancárias e cartões;
+- registro de receitas e despesas pontuais ou recorrentes;
+- categorias personalizadas para movimentações;
+- compras parceladas e controle de limite de cartão de crédito;
+- histórico filtrável de movimentações;
+- agenda mensal de lançamentos futuros;
+- painel com receitas, despesas, saldo líquido e saldos por conta.
 
-## 2. Escopo funcional (MVP)
+Não fazem parte do MVP integrações bancárias, pagamentos reais, múltiplas
+moedas, contas compartilhadas, aplicativo móvel nativo ou gestão completa de
+boletos e faturas.
 
-### 2.1 Gestão de renda
+Os requisitos e as regras de negócio detalhados estão em
+[`docs/prospect.md`](docs/prospect.md). Consulte também o
+[`índice da documentação`](docs/README.md).
 
-- Cadastrar, editar e excluir **fontes de renda** (ex.: salário, freelance, bolsa, aluguel, investimentos).
-- Registrar **lançamentos de receita** vinculados a uma fonte: valor, data, descrição e se é recorrente.
-- Suporte a receitas **fixas recorrentes** (ex.: salário todo dia 5) e **variáveis/pontuais**.
-- Consultar o total recebido por período e por fonte.
+## Tecnologias
 
-### 2.2 Gestão de gastos
+- Python 3.14 ou superior;
+- [uv](https://docs.astral.sh/uv/) para ambiente e dependências;
+- FastAPI, já declarado como dependência, mas ainda não utilizado no código;
+- PostgreSQL 18 e Redis 7 preparados no Docker Compose;
+- Alembic e Psycopg para a futura camada de persistência.
 
-- Registrar **despesas**: valor, data, descrição, categoria e meio de pagamento utilizado.
-- Cadastro de **categorias** de gasto (ex.: alimentação, transporte, moradia, lazer, saúde, educação).
-- Listar e filtrar despesas por período, categoria e meio de pagamento.
-- Consultar o total gasto por período e por categoria.
+## Como rodar
 
-### 2.3 Meios de pagamento
+### Pré-requisitos
 
-- Cadastrar diferentes **meios de pagamento**, cada um com seu tipo:
-  - Dinheiro
-  - Conta corrente / débito
-  - PIX
-  - Cartão de crédito
-  - (outros, conforme necessidade)
-- Para **cartões de crédito**, armazenar também: nome/apelido, bandeira, limite, dia de fechamento e dia de vencimento da fatura.
-- Ativar/desativar meios de pagamento sem perder o histórico.
+Para executar o ponto de entrada atual, instale:
 
-### 2.4 Compras no cartão de crédito (parceladas e recorrentes)
+- Python 3.14 ou superior;
+- [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-- Registrar compras **parceladas**, gerando automaticamente as parcelas nas faturas seguintes.
-- Registrar compras **recorrentes** (assinaturas e cobranças mensais, ex.: streaming, academia), lançadas automaticamente a cada ciclo até serem canceladas.
-- Calcular em qual **fatura** cada lançamento cai, com base no dia de fechamento do cartão.
-- Visualizar a fatura atual e as futuras de cada cartão, além do **limite disponível**.
+O Docker é opcional e só será necessário para trabalhar com a infraestrutura de
+PostgreSQL e Redis.
 
-### 2.5 Gestão de boletos
+### Aplicação local
 
-- Cadastrar boletos: descrição, valor, data de vencimento, código de barras (opcional) e categoria.
-- Controlar o **status**: pendente, pago ou vencido.
-- Marcar um boleto como pago, registrando data e meio de pagamento (gerando a despesa correspondente).
-- Listar boletos a vencer nos próximos dias e boletos em atraso.
-
-### 2.6 Visão geral (dashboard/relatórios)
-
-- Saldo do mês: total de receitas − total de despesas.
-- Gastos por categoria e por meio de pagamento.
-- Próximos vencimentos (boletos e faturas de cartão).
-
-## 3. Fora do escopo (por enquanto)
-
-- Integração com bancos (Open Finance) ou importação automática de extratos.
-- Pagamento real de boletos ou transações financeiras.
-- Investimentos e cotações em tempo real.
-- Múltiplas moedas.
-- Aplicativo mobile nativo.
-
-Esses itens podem ser considerados em versões futuras.
-
-## 4. Modelo de dados inicial
-
-Entidades principais previstas:
-
-| Entidade | Descrição |
-|---|---|
-| `Usuario` | Dono dos dados financeiros. |
-| `FonteRenda` | Origem de uma receita (salário, freelance etc.). |
-| `Receita` | Lançamento de entrada de dinheiro, ligado a uma `FonteRenda`. |
-| `Categoria` | Classificação de despesas. |
-| `MeioPagamento` | Forma de pagamento (dinheiro, débito, PIX, cartão...). |
-| `CartaoCredito` | Especialização de `MeioPagamento` com limite, fechamento e vencimento. |
-| `Despesa` | Lançamento de saída de dinheiro, ligado a `Categoria` e `MeioPagamento`. |
-| `CompraCartao` | Compra no cartão, parcelada ou recorrente, que gera lançamentos nas faturas. |
-| `Fatura` | Agrupamento mensal dos lançamentos de um `CartaoCredito`. |
-| `Boleto` | Conta a pagar com vencimento e status. |
-
-## 5. Regras de negócio iniciais
-
-- Valores monetários devem ser armazenados com precisão decimal (nunca `float`).
-- Uma compra no cartão feita **após o dia de fechamento** entra na fatura do mês seguinte.
-- Uma compra parcelada em *N* vezes gera *N* lançamentos, um por fatura consecutiva.
-- Compras recorrentes geram um novo lançamento a cada ciclo até serem encerradas.
-- Um boleto não pago após a data de vencimento passa automaticamente para o status **vencido**.
-- Excluir um meio de pagamento ou categoria com lançamentos vinculados não deve apagar o histórico (usar desativação).
-
-## 6. Tecnologias
-
-- **Linguagem:** Python 3.14
-- **Gerenciamento de projeto/dependências:** [uv](https://docs.astral.sh/uv/) (`pyproject.toml`)
-- **Interface, persistência e framework:** a definir
-
-## 7. Como executar
+Na raiz do repositório, instale as dependências bloqueadas no `uv.lock`:
 
 ```bash
-uv run main.py
+uv sync
 ```
 
-## 8. Próximos passos
+Em seguida, execute:
 
-1. Definir a interface (CLI, web ou API) e o banco de dados.
-2. Modelar as entidades e criar a camada de persistência.
-3. Implementar os CRUDs de fontes de renda, categorias e meios de pagamento.
-4. Implementar lançamentos de receitas e despesas.
-5. Implementar cartões de crédito, faturas e compras parceladas/recorrentes.
-6. Implementar gestão de boletos.
-7. Criar a visão geral/relatórios.
-8. Escrever testes automatizados para as regras de negócio.
+```bash
+uv run python src/finance_io/main.py
+```
+
+No estado atual, a saída esperada é:
+
+```text
+Hello from finance-io!
+```
+
+Ainda não existe um servidor FastAPI configurado, portanto não há endpoint HTTP
+ou interface web para acessar.
+
+### Infraestrutura com Docker
+
+O arquivo `docker-compose.yaml` descreve PostgreSQL e Redis. Para preparar as
+variáveis locais:
+
+```bash
+cp .env.example .env
+```
+
+Preencha no `.env`:
+
+```dotenv
+POSTGRES_USER=finance
+POSTGRES_PASSWORD=troque-esta-senha
+POSTGRES_DB=finance
+REDIS_USER=finance
+REDIS_PASSWORD=troque-esta-senha
+```
+
+Valide a configuração com:
+
+```bash
+docker compose config --quiet
+```
+
+Para construir as imagens e iniciar PostgreSQL e Redis em segundo plano:
+
+```bash
+docker compose up -d --build
+```
+
+Confira o estado e a saúde dos contêineres:
+
+```bash
+docker compose ps
+```
+
+Para acompanhar os logs dos dois serviços:
+
+```bash
+docker compose logs -f db redis
+```
+
+Use `Ctrl+C` para sair dos logs sem interromper os contêineres. Os serviços são
+expostos somente no host local:
+
+- PostgreSQL: `127.0.0.1:54320`;
+- Redis: `127.0.0.1:6379`.
+
+Para interromper e remover os contêineres e a rede, preservando os dados nos
+volumes:
+
+```bash
+docker compose down
+```
+
+Para apagar também os volumes e reiniciar os bancos do zero:
+
+```bash
+docker compose down --volumes
+```
+
+> O último comando exclui permanentemente os dados locais do PostgreSQL e do
+> Redis.
+
+## Estrutura do repositório
+
+```text
+.
+├── src/
+│   └── finance_io/
+│       ├── __init__.py     # definição do pacote Python
+│       └── main.py         # ponto de entrada provisório
+├── docker/
+│   └── redis/
+│       ├── Dockerfile
+│       └── users.acl.template
+├── docs/
+│   ├── README.md           # índice da documentação
+│   ├── prospect.md         # requisitos funcionais do MVP
+│   └── llm.md              # contexto consolidado do produto e do domínio
+├── pyproject.toml          # metadados e dependências Python
+├── uv.lock                 # versões bloqueadas das dependências
+└── docker-compose.yaml     # PostgreSQL e Redis para desenvolvimento
+```
+
+## Próximos passos
+
+1. Definir a arquitetura da API e configurar a aplicação FastAPI.
+2. Modelar as entidades e criar a persistência no PostgreSQL.
+3. Adicionar migrações, schema e dados de desenvolvimento.
+4. Implementar as regras de receitas, despesas, contas, cartões e categorias.
+5. Implementar recorrências, parcelamentos, agenda, histórico e painel.
+6. Criar testes automatizados para as regras financeiras.

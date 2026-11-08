@@ -1,7 +1,7 @@
 [project]
 name = "finance-io"
 version = "0.1.0"
-description = "Add your description here"
+description = "Aplicação acadêmica de gestão financeira pessoal"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
