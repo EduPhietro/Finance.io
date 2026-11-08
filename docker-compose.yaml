@@ -1,0 +1,47 @@
+name: finance-dev
+
+services: 
+    db:
+        image: postgres:18-alpine
+        container_name: postgresql
+        restart: unless-stopped # Restarta automaticamente, salve quando for parado manualmente
+        environment:
+            - POSTGRES_USER=finance.io #Usuário do banco de dados
+            - POSTGRES_PASSWORD=finance-io-admin # Senha do banco de dados
+            - POSTGRES_DB=finance-io # Nome do banco de dados
+        ports: 
+            - "127.0.0.1:54320:5432" # Porta padrão
+        # Volume de montagem
+        volumes: 
+                - postgresql:/var/lib/postgresql:rw
+                - ./database/scripts/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+                - ./database/scripts/seeds.sql:/docker-entrypoint-initdb.d/02_seeds.sql:ro
+
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U finance.io -d finance-io"]
+            interval: 1m
+            timeout: 30s
+            retries: 5
+            start_period: 30s
+    redis:
+        image: redis:7-alpine
+        container_name: redis-finance
+        restart: unless-stopped
+        ports: 
+            - 127.0.0.1:6379:6379
+
+        volumes: 
+            - redis:/data:rw
+        command: ["redis-server", "--appendonly", "yes"]
+
+        healthcheck:
+            test: ["CMD-SHELL", "redis-cli ping"]
+            interval: 1m
+            timeout: 30s
+            retries: 5
+            start_period: 10s
+
+# Volume de dados
+volumes: 
+    postgresql:
+    redis:
