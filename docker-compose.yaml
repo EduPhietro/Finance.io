@@ -118,20 +118,15 @@ services:
 
     # Script de inicialização do contêiner.
     # O símbolo | permite escrever múltiplas linhas em YAML.
-    command: |
+    command:
+    - |
 
       # Substitui REDIS_USER e REDIS_PASSWORD no template.
-      # $$ impede a interpolação antecipada pelo Compose.
-      # < fornece o template pela entrada padrão (stdin).
-      # > grava o resultado no arquivo /tmp/users.acl.
       envsubst '$${REDIS_USER} $${REDIS_PASSWORD}' \
         < /usr/local/etc/redis/users.acl.template \
         > /tmp/users.acl
 
       # Inicia o Redis após gerar o arquivo ACL.
-      # exec substitui o processo Shell pelo redis-server.
-      # --appendonly yes habilita a persistência AOF.
-      # --aclfile indica o arquivo de autenticação.
       exec redis-server \
         --appendonly yes \
         --aclfile /tmp/users.acl
