@@ -4,10 +4,10 @@
 
 Este arquivo reúne o contexto geral do Finance.io para orientar pessoas desenvolvedoras e assistentes de IA durante a análise, o planejamento e a implementação do projeto.
 
-As regras funcionais detalhadas estão em [`prospec.md`](./prospec.md). Em caso de divergência entre este documento, o `README.md` e o `prospec.md`, devem prevalecer, nesta ordem:
+As regras funcionais detalhadas estão em [`prospect.md`](./prospect.md). Em caso de divergência entre este documento, o `README.md` e o `prospect.md`, devem prevalecer, nesta ordem:
 
 1. a solicitação mais recente do responsável pelo projeto;
-2. o arquivo `docs/prospec.md`;
+2. o arquivo `docs/prospect.md`;
 3. este arquivo;
 4. o `README.md`.
 
@@ -311,24 +311,26 @@ Boletos e faturas podem ser avaliados em versões futuras. No MVP, despesas agen
 
 ## 10. Estado técnico atual
 
-Na data de criação deste documento, o projeto possui apenas a estrutura inicial:
+Atualmente, o projeto ainda possui uma estrutura inicial:
 
 - linguagem: Python;
 - versão mínima declarada: Python 3.14;
 - gerenciamento de projeto e dependências: `uv` e `pyproject.toml`;
-- ponto de entrada: `main.py`;
-- interface: ainda não definida;
-- persistência: ainda não definida;
-- framework: ainda não definido;
-- dependências externas: nenhuma declarada.
+- pacote da aplicação: `src/finance_io`;
+- ponto de entrada provisório: `src/finance_io/main.py`;
+- framework de API declarado: FastAPI, ainda sem aplicação configurada;
+- persistência planejada: PostgreSQL, Psycopg e Alembic, ainda sem modelos ou migrações;
+- cache planejado: Redis;
+- infraestrutura: Docker Compose preparado para PostgreSQL e Redis, com os arquivos da imagem Redis centralizados em `docker/redis`;
+- interface: ainda não definida.
 
-O `main.py` atual é apenas um ponto de entrada de exemplo. Sua existência não representa uma decisão arquitetural.
+O `src/finance_io/main.py` atual é apenas um ponto de entrada de exemplo e não inicia um servidor HTTP. As dependências e a infraestrutura declaradas indicam a direção técnica atual, mas não representam funcionalidades já implementadas.
 
 ## 11. Orientações para evolução e implementação
 
 Antes de implementar uma funcionalidade:
 
-1. confirmar que ela pertence ao MVP descrito em `docs/prospec.md`;
+1. confirmar que ela pertence ao MVP descrito em `docs/prospect.md`;
 2. identificar as regras e entidades afetadas;
 3. manter cálculos financeiros independentes da camada de interface;
 4. cobrir regras críticas com testes automatizados;

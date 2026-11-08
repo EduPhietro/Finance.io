@@ -40,18 +40,12 @@ services:
     ports:
       - "127.0.0.1:54320:5432"
 
-    # Montagens de volumes e arquivos.
+    # Montagem do volume persistente.
     volumes:
 
       # Volume persistente dos dados PostgreSQL 18.
       # rw permite leitura e escrita.
       - postgresql:/var/lib/postgresql:rw
-
-      # Scripts SQL executados na primeira inicialização
-      # de um diretório de dados vazio.
-      # ro indica montagem somente para leitura.
-      - ./database/scripts/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-      - ./database/scripts/seeds.sql:/docker-entrypoint-initdb.d/02_seeds.sql:ro
 
     # Verifica periodicamente a disponibilidade do PostgreSQL.
     healthcheck:
@@ -75,7 +69,7 @@ services:
     # Constrói uma imagem personalizada usando o Dockerfile.
     # O Dockerfile instala o utilitário envsubst.
     build:
-      context: ./redis
+      context: ./docker/redis
       dockerfile: Dockerfile
 
     # Nome e tag da imagem construída.
@@ -105,7 +99,7 @@ services:
       # Monta o template ACL no contêiner.
       # O arquivo contém referências às variáveis de ambiente.
       # ro impede modificações no arquivo original.
-      - ./redis/users.acl.template:/usr/local/etc/redis/users.acl.template:ro
+      - ./docker/redis/users.acl.template:/usr/local/etc/redis/users.acl.template:ro
 
       # Volume persistente para os dados do Redis.
       # rw permite leitura e escrita.
