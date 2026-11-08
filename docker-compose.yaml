@@ -1,47 +1,168 @@
+
+# ============================================================
+# FINANCE.IO — AMBIENTE DE DESENVOLVIMENTO
+# ============================================================
+
+# Nome do projeto Docker Compose.
+# Utilizado para identificar e agrupar seus recursos.
 name: finance-dev
 
-services: 
-    db:
-        image: postgres:18-alpine
-        container_name: postgresql
-        restart: unless-stopped # Restarta automaticamente, salve quando for parado manualmente
-        environment:
-            - POSTGRES_USER=finance.io #Usuário do banco de dados
-            - POSTGRES_PASSWORD=finance-io-admin # Senha do banco de dados
-            - POSTGRES_DB=finance-io # Nome do banco de dados
-        ports: 
-            - "127.0.0.1:54320:5432" # Porta padrão
-        # Volume de montagem
-        volumes: 
-                - postgresql:/var/lib/postgresql:rw
-                - ./database/scripts/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-                - ./database/scripts/seeds.sql:/docker-entrypoint-initdb.d/02_seeds.sql:ro
+# Declaração dos serviços executados em contêineres.
+services:
 
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U finance.io -d finance-io"]
-            interval: 1m
-            timeout: 30s
-            retries: 5
-            start_period: 30s
-    redis:
-        image: redis:7-alpine
-        container_name: redis-finance
-        restart: unless-stopped
-        ports: 
-            - 127.0.0.1:6379:6379
+  # ==========================================================
+  # POSTGRESQL — BANCO DE DADOS RELACIONAL
+  # ==========================================================
+  db:
 
-        volumes: 
-            - redis:/data:rw
-        command: ["redis-server", "--appendonly", "yes"]
+    # Imagem oficial PostgreSQL 18 baseada no Alpine Linux.
+    image: postgres:18-alpine
 
-        healthcheck:
-            test: ["CMD-SHELL", "redis-cli ping"]
-            interval: 1m
-            timeout: 30s
-            retries: 5
-            start_period: 10s
+    # Nome atribuído ao contêiner.
+    container_name: postgresql
 
-# Volume de dados
-volumes: 
-    postgresql:
-    redis:
+    # Reinicia automaticamente o contêiner, exceto quando
+    # interrompido manualmente.
+    restart: unless-stopped
+
+    # Variáveis de ambiente para inicialização do PostgreSQL.
+    # Os valores são obtidos do arquivo .env pelo Compose.
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}         # Usuário
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD} # Senha
+      - POSTGRES_DB=${POSTGRES_DB}             # Banco inicial
+
+    # Publicação de portas no formato:
+    # IP_DO_HOST:PORTA_DO_HOST:PORTA_CONTAINER
+    #
+    # 127.0.0.1 restringe o acesso ao host local.
+    # 54320 é a porta externa; 5432 é a porta do PostgreSQL.
+    ports:
+      - "127.0.0.1:54320:5432"
+
+    # Montagens de volumes e arquivos.
+    volumes:
+
+      # Volume persistente dos dados PostgreSQL 18.
+      # rw permite leitura e escrita.
+      - postgresql:/var/lib/postgresql:rw
+
+      # Scripts SQL executados na primeira inicialização
+      # de um diretório de dados vazio.
+      # ro indica montagem somente para leitura.
+      - ./database/scripts/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/scripts/seeds.sql:/docker-entrypoint-initdb.d/02_seeds.sql:ro
+
+    # Verifica periodicamente a disponibilidade do PostgreSQL.
+    healthcheck:
+
+      # pg_isready verifica se o servidor aceita conexões.
+      # $$ preserva a variável para expansão no contêiner.
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+
+      interval: 1m       # Intervalo entre verificações.
+      timeout: 30s       # Tempo máximo por verificação.
+      retries: 5         # Falhas consecutivas toleradas.
+      start_period: 30s  # Período inicial de tolerância.
+
+  # ==========================================================
+  # REDIS — ARMAZENAMENTO EM MEMÓRIA / CACHE
+  # ==========================================================
+  redis:
+
+    # Constrói uma imagem personalizada usando o Dockerfile.
+    # O Dockerfile instala o utilitário envsubst.
+    build:
+      context: ./redis
+      dockerfile: Dockerfile
+
+    # Nome e tag da imagem construída.
+    image: finance-redis:7
+
+    # Nome atribuído ao contêiner Redis.
+    container_name: redis-finance
+
+    # Reinicia automaticamente, exceto quando parado
+    # manualmente.
+    restart: unless-stopped
+
+    # Credenciais fornecidas pelo arquivo .env.
+    # Serão utilizadas para gerar o arquivo ACL.
+    environment:
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+    # Publica a porta Redis somente no host local.
+    # 6379 é a porta padrão do Redis.
+    ports:
+      - "127.0.0.1:6379:6379"
+
+    # Montagens de arquivos e persistência de dados.
+    volumes:
+
+      # Monta o template ACL no contêiner.
+      # O arquivo contém referências às variáveis de ambiente.
+      # ro impede modificações no arquivo original.
+      - ./redis/users.acl.template:/usr/local/etc/redis/users.acl.template:ro
+
+      # Volume persistente para os dados do Redis.
+      # rw permite leitura e escrita.
+      - redis:/data:rw
+
+    # Define o interpretador que executará o command.
+    entrypoint:
+      - /bin/sh  # Shell disponível no Alpine Linux.
+      - -ec      # -e: encerra em erro; -c: executa o script.
+
+    # Script de inicialização do contêiner.
+    # O símbolo | permite escrever múltiplas linhas em YAML.
+    command: |
+
+      # Substitui REDIS_USER e REDIS_PASSWORD no template.
+      # $$ impede a interpolação antecipada pelo Compose.
+      # < fornece o template pela entrada padrão (stdin).
+      # > grava o resultado no arquivo /tmp/users.acl.
+      envsubst '$${REDIS_USER} $${REDIS_PASSWORD}' \
+        < /usr/local/etc/redis/users.acl.template \
+        > /tmp/users.acl
+
+      # Inicia o Redis após gerar o arquivo ACL.
+      # exec substitui o processo Shell pelo redis-server.
+      # --appendonly yes habilita a persistência AOF.
+      # --aclfile indica o arquivo de autenticação.
+      exec redis-server \
+        --appendonly yes \
+        --aclfile /tmp/users.acl
+
+    # Verifica a disponibilidade do Redis com autenticação.
+    healthcheck:
+
+      # CMD-SHELL executa o comando em um Shell.
+      # REDISCLI_AUTH fornece a senha ao redis-cli.
+      # --user informa o usuário configurado na ACL.
+      # ping verifica se o servidor responde.
+      # grep -qx PONG exige a resposta exata PONG.
+      test:
+        - CMD-SHELL
+        - 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli --user "$$REDIS_USER" ping | grep -qx PONG'
+
+      interval: 1m       # Intervalo entre verificações.
+      timeout: 30s       # Tempo máximo por verificação.
+      retries: 5         # Falhas consecutivas toleradas.
+      start_period: 10s  # Período inicial de tolerância.
+
+# ============================================================
+# VOLUMES PERSISTENTES
+# ============================================================
+
+# Volumes gerenciados pelo Docker.
+# Preservam os dados após remoção ou recriação de contêineres.
+volumes:
+
+  # Armazena os dados do PostgreSQL.
+  postgresql:
+
+  # Armazena os dados persistentes do Redis.
+  redis:
