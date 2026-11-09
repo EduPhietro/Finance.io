@@ -5,7 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from finance_io.backend.database.settings import Base, DATABASE_URL
+from finance_io.backend.database.settings import Base
+from finance_io.backend.core.config import settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -21,7 +22,8 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 config.set_main_option(
     'sqlalchemy.url',
-    DATABASE_URL.replace('%', '%%'))
+    str(settings.database_url).replace('%', '%%'))
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
