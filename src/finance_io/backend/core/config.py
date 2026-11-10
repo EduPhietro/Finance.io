@@ -1,10 +1,12 @@
 from functools import lru_cache
 
+
 from typing import Literal
 
-
+from dotenv import load_dotenv
 from pydantic import PostgresDsn, SecretStr, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     
@@ -14,7 +16,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     
-    database_url: PostgresDsn = Field(validation_alias="DATABASE_URL")
+    database_url: PostgresDsn = Field(validation_alias="database_url")
     
     redis_host: str = 'localhost'
     redis_port: int = 6379
