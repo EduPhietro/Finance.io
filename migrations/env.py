@@ -7,6 +7,10 @@ from alembic import context
 
 from finance_io.backend.database.settings import Base
 from finance_io.backend.core.config import settings
+
+
+import finance_io.backend.models
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
