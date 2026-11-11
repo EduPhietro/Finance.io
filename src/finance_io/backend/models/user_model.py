@@ -1,11 +1,15 @@
 
 import uuid
-from datetime import date, datetime
-from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
+from typing import TYPE_CHECKING
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from sqlalchemy import UUID, func, String, DateTime
 
 from finance_io.backend.database.settings import Base
+
+if TYPE_CHECKING:
+    from finance_io.backend.models.address_model import AddressModel
 
 
 class UserModel(Base):
@@ -30,7 +34,7 @@ class UserModel(Base):
         String(100),
         nullable=False,
         unique=True,
-        comment="Representa o email do usuário."
+        comment="Representa o nome de usuário (login)."
     )
 
     email: Mapped[str] = mapped_column(
@@ -55,14 +59,20 @@ class UserModel(Base):
         comment="Timestamp de horário de criação."
     )
 
-    updated_at: Mapped[datetime] = mapped_column(
+    updated_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
         comment="Timestamp de atualização."
     )
     
-    deleted_at: Mapped[datetime] = mapped_column(
+    deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(),
         nullable=True,
         comment="Timestamp de deleção."
     )
+
+    addresses: Mapped[list["AddressModel"]] = relationship(
+        back_populates="user", 
+        cascade="all, delete-orphan", 
+        passive_deletes=True
+        )
