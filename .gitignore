@@ -19,3 +19,6 @@ wheels/
 # Ruff-generated files
 
 .ruff_cache
+
+# Vscode dir config
+.vscode
