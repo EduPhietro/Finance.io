@@ -1,7 +1,76 @@
+import { useState } from 'react'
+import { Wallet, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
-import { Wallet, Mail, Lock, Eye } from 'lucide-react'
+function Login({ onNavigate }) {
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [form, setForm] = useState({
+      email: '',
+      senha: ''
+    })
 
-function Login() {
+  function validarEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+  const [erros, setErros] = useState({})
+  const [mensagem, setMensagem] = useState('')
+
+ function handleChange(event) {
+  const { name, value } = event.target
+
+  setForm(prev => ({
+    ...prev,
+    [name]: value
+  }))
+
+  setErros(prev => {
+    const novosErros = { ...prev }
+
+    if (name === 'email') {
+      if (validarEmail(value)) {
+        delete novosErros.email
+      } else if (value.trim()) {
+        novosErros.email = 'Digite um e-mail válido.'
+      }
+    }
+
+    if (name === 'senha' && value) {
+      delete novosErros.senha
+    }
+
+    return novosErros
+  })
+
+  setMensagem('')
+}
+
+function handleSubmit(event) {
+  event.preventDefault()
+
+  const novosErros = {}
+
+  if (!form.email.trim()) {
+    novosErros.email = 'Informe seu e-mail.'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    novosErros.email = 'Digite um e-mail válido.'
+  }
+
+  if (!form.senha) {
+    novosErros.senha = 'Informe sua senha.'
+  }
+
+  setErros(novosErros)
+  setMensagem('')
+
+  if (Object.keys(novosErros).length === 0) {
+    setMensagem('Dados preenchidos corretamente!')
+  }
+
+  if (Object.keys(novosErros).length === 0) {
+  setMensagem('Campos preenchidos! Aguardando autenticação.')
+  }
+
+}
   return (
     <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
 
@@ -49,7 +118,11 @@ function Login() {
             </p>
           </div>
 
-          <form className="space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="space-y-4"
+          >
 
             {/* E-mail */}
             <div>
@@ -57,15 +130,27 @@ function Login() {
                 E-mail
               </label>
 
-              <div className="flex items-center gap-3 border border-gray-200 rounded-lg px-4 bg-white">
+              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
+                  erros.email ? 'border-red-500' : 'border-gray-200'
+                }`}>
                 <Mail size={18} className="text-gray-400" />
 
                 <input
-                  type="email"
-                  placeholder="seuemail@exemplo.com"
-                  className="w-full py-4 outline-none bg-transparent text-sm"
-                />
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="seuemail@exemplo.com"
+                className="w-full py-3.5 outline-none bg-transparent text-sm"
+              />
               </div>
+
+              {erros.email && (
+              <p className="text-red-500 text-xs mt-1">
+                {erros.email}
+              </p>
+            )}
+
             </div>
 
             {/* Senha */}
@@ -74,17 +159,36 @@ function Login() {
                 Senha
               </label>
 
-              <div className="flex items-center gap-3 border border-gray-200 rounded-lg px-4 bg-white">
+              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
+                erros.senha ? 'border-red-500' : 'border-gray-200'
+              }`}>
                 <Lock size={18} className="text-gray-400" />
 
                 <input
-                  type="password"
-                  placeholder="Digite sua senha"
-                  className="w-full py-4 outline-none bg-transparent text-sm"
-                />
+              type={mostrarSenha ? 'text' : 'password'}
+              name="senha"
+              value={form.senha}
+              onChange={handleChange}
+              placeholder="Digite sua senha"
+              className="w-full py-3.5 outline-none bg-transparent text-sm"
+            />
 
-                <Eye size={18} className="text-gray-400 cursor-pointer" />
+          <button
+            type="button"
+            onClick={() => setMostrarSenha(!mostrarSenha)}
+            className="text-gray-400 hover:text-[#008A68]"
+            aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+          >
+          {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
               </div>
+
+              {erros.senha && (
+                <p className="text-red-500 text-xs mt-1">
+                  {erros.senha}
+                </p>
+              )}
+
             </div>
 
             {/* Recuperação de senha */}
@@ -105,6 +209,12 @@ function Login() {
               Entrar
             </button>
 
+            {mensagem && (
+            <p className="text-green-700 text-sm text-center">
+              {mensagem}
+            </p>
+          )}
+
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-8">
@@ -113,7 +223,12 @@ function Login() {
               href="#"
               className="text-[#008A68] font-semibold"
             >
-              Criar conta
+             <button
+      type="button"
+      onClick={() => onNavigate('cadastro')}
+          >
+        Criar conta
+</button>
             </a>
           </p>
 
