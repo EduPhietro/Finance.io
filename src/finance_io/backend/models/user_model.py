@@ -10,6 +10,7 @@ from finance_io.backend.database.settings import Base
 if TYPE_CHECKING:
     from finance_io.backend.models.address_model import AddressModel
     from finance_io.backend.models.cateogories_model import CategoryModel
+    from finance_io.backend.models.bank_account_model import BankAccountModel
 
 
 class UserModel(Base):
@@ -74,7 +75,9 @@ class UserModel(Base):
         passive_deletes=True,
     )
 
-    categories: Mapped[list["CategoryModel"]] = relationship(back_populates="user")
+    categories: Mapped[list["CategoryModel"]] = relationship(back_populates="categories")
+    
+    bank_accounts: Mapped[list["BankAccountModel"]] = relationship(back_populates="bank_accounts")
 
     system_categories = lambda: relationship(
         primaryjoin=or_(
