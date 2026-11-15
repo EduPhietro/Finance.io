@@ -3,6 +3,7 @@ from .address_model import AddressModel
 from .cateogories_model import CategoryModel
 from .bank_account_model import BankAccountModel
 from .card_model import CardModel
+from .installment_plan_model import InstallmentPlanModel
 
 __all__ = [
     "UserModel",
@@ -10,4 +11,5 @@ __all__ = [
     "CategoryModel",
     "BankAccountModel",
     "CardModel",
+    "InstallmentPlanModel",
 ]

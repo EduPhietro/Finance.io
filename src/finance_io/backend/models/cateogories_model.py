@@ -16,6 +16,7 @@ from sqlalchemy import (
 from finance_io.backend.database.settings import Base
 
 if TYPE_CHECKING:
+    from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
     from finance_io.backend.models.user_model import UserModel
 
 
@@ -50,6 +51,11 @@ class CategoryModel(Base):
     # Relationships object
     user: Mapped["UserModel | None"] = relationship(
         back_populates="categories",
+        lazy="selectin",
+    )
+
+    installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
+        back_populates="category",
         lazy="selectin",
     )
 

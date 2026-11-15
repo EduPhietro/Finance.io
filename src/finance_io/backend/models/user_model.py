@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from finance_io.backend.models.address_model import AddressModel
     from finance_io.backend.models.cateogories_model import CategoryModel
     from finance_io.backend.models.bank_account_model import BankAccountModel
+    from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
 
 
 class UserModel(Base):
@@ -85,6 +86,13 @@ class UserModel(Base):
     )
 
     bank_accounts: Mapped[list["BankAccountModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,

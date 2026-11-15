@@ -25,6 +25,7 @@ from finance_io.backend.database.settings import Base
 
 if TYPE_CHECKING:
     from finance_io.backend.models.bank_account_model import BankAccountModel
+    from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
 
 
 class CardModel(Base):
@@ -83,6 +84,11 @@ class CardModel(Base):
 
     bank_account: Mapped["BankAccountModel"] = relationship(
         back_populates="cards",
+        lazy="selectin",
+    )
+
+    installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
+        back_populates="card",
         lazy="selectin",
     )
     

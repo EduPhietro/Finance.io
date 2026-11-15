@@ -311,20 +311,21 @@ Boletos e faturas podem ser avaliados em versões futuras. No MVP, despesas agen
 
 ## 10. Estado técnico atual
 
-Atualmente, o projeto ainda possui uma estrutura inicial:
+Atualmente, o projeto está estruturando as camadas de dados e interface:
 
 - linguagem: Python;
 - versão mínima declarada: Python 3.14;
 - gerenciamento de projeto e dependências: `uv` e `pyproject.toml`;
 - pacote da aplicação: `src/finance_io`;
 - ponto de entrada provisório: `src/finance_io/main.py`;
-- framework de API declarado: FastAPI, ainda sem aplicação configurada;
-- persistência planejada: PostgreSQL, Psycopg e Alembic, ainda sem modelos ou migrações;
-- cache planejado: Redis;
-- infraestrutura: Docker Compose preparado para PostgreSQL e Redis, com os arquivos da imagem Redis centralizados em `docker/redis`;
-- interface: ainda não definida.
+- framework de API declarado: FastAPI, ainda sem aplicação ou endpoints configurados;
+- persistência: PostgreSQL, Psycopg, SQLAlchemy e Alembic;
+- modelos e migrações: usuários, endereços, categorias, contas bancárias, cartões e planos de parcelamento;
+- cache preparado: Redis, ainda sem uso pela aplicação;
+- infraestrutura: Docker Compose para PostgreSQL e Redis, com os arquivos da imagem Redis centralizados em `docker/redis`;
+- interface: React, Vite e Tailwind CSS, com telas de login e cadastro e validação local, ainda sem integração com o backend.
 
-O `src/finance_io/main.py` atual é apenas um ponto de entrada de exemplo e não inicia um servidor HTTP. As dependências e a infraestrutura declaradas indicam a direção técnica atual, mas não representam funcionalidades já implementadas.
+O `src/finance_io/main.py` atual é apenas um ponto de entrada de exemplo e não inicia um servidor HTTP. A persistência e a interface já possuem implementação inicial, mas autenticação, endpoints, movimentações financeiras e integração entre as camadas ainda não estão disponíveis.
 
 ## 11. Orientações para evolução e implementação
 
@@ -337,7 +338,7 @@ Antes de implementar uma funcionalidade:
 5. evitar dependências ou abstrações desnecessárias para o estágio atual;
 6. atualizar a documentação quando uma decisão de produto ou arquitetura for tomada.
 
-Decisões ainda abertas, como framework, banco de dados, autenticação e tipo de interface, não devem ser presumidas silenciosamente. Quando uma implementação depender delas, a decisão deve ser registrada antes ou junto da mudança.
+Decisões ainda abertas, como estratégia de autenticação e organização da API, não devem ser presumidas silenciosamente. Quando uma implementação depender delas, a decisão deve ser registrada antes ou junto da mudança.
 
 ## 12. Critério geral de conclusão do MVP
 
