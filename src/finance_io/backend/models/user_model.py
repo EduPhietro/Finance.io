@@ -2,13 +2,14 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import UUID, DateTime, String, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import UUID, DateTime, ForeignKey, String, func, or_
+from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from finance_io.backend.database.settings import Base
 
 if TYPE_CHECKING:
     from finance_io.backend.models.address_model import AddressModel
+    from finance_io.backend.models.cateogories_model import CategoryModel
 
 
 class UserModel(Base):
@@ -68,7 +69,16 @@ class UserModel(Base):
     )
 
     addresses: Mapped[list["AddressModel"]] = relationship(
-        back_populates="user", 
-        cascade="all, delete-orphan", 
+        back_populates="user",
+        cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+
+    categories: Mapped[list["CategoryModel"]] = relationship(back_populates="user")
+
+    system_categories = lambda: relationship(
+        primaryjoin=or_(
+            UserModel.id == foreign(CategoryModel.user_id),
+            CategoryModel.user_id.is_(None),
+        )
     )
