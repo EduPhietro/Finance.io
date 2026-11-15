@@ -74,11 +74,22 @@ class UserModel(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        lazy="selectin",
     )
 
-    categories: Mapped[list["CategoryModel"]] = relationship(back_populates="user")
-    
-    bank_accounts: Mapped[list["BankAccountModel"]] = relationship(back_populates="user")
+    categories: Mapped[list["CategoryModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    bank_accounts: Mapped[list["BankAccountModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
 
     system_categories = lambda: relationship(
         primaryjoin=or_(

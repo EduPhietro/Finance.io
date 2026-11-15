@@ -105,4 +105,7 @@ class AddressModel(Base):
         comment="Data e hora da exclusão lógica.",
     )
 
-    user: Mapped["UserModel"] = relationship(back_populates="addresses")
+    user: Mapped["UserModel"] = relationship(
+        back_populates="addresses",
+        lazy="selectin",
+    )
