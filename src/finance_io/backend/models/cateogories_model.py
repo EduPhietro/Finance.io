@@ -16,7 +16,7 @@ from sqlalchemy import (
 from finance_io.backend.database.settings import Base
 
 if TYPE_CHECKING:
-    from finance_io.backend.models import UserModel
+    from finance_io.backend.models.user_model import UserModel
 
 
 class CategoryModel(Base):
@@ -31,7 +31,7 @@ class CategoryModel(Base):
     category_type: Mapped[str] = mapped_column(String(10), nullable=False)
 
     identification_color: Mapped[str] = mapped_column(
-        String(7), server_default="89CFF0"
+        String(7), server_default="#89CFF0"
     )  # Cor azul bebê
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False)
@@ -39,19 +39,26 @@ class CategoryModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    deleted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # References
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("USERS.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True
     )
     # Relationships object
-    user: Mapped["UserModel | None"] = relationship(back_populates="user")
+    user: Mapped["UserModel | None"] = relationship(
+        back_populates="categories",
+        lazy="selectin",
+    )
 
     __table_args__ = (
         CheckConstraint(
             "category_type IN ('INCOME', 'EXPENSE', 'BOTH')", name="check_category_type"
+        ),
+        CheckConstraint(
+            "identification_color ~ '^#[0-9A-Fa-f]{6}$'",
+            name="check_category_model_indetification_color_format",
         ),
     )

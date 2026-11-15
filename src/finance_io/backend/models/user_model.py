@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import UUID, DateTime, ForeignKey, String, func, or_
+
+from sqlalchemy import UUID, DateTime, String, func, or_
 from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from finance_io.backend.database.settings import Base
@@ -73,11 +74,22 @@ class UserModel(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        lazy="selectin",
     )
 
-    categories: Mapped[list["CategoryModel"]] = relationship(back_populates="categories")
-    
-    bank_accounts: Mapped[list["BankAccountModel"]] = relationship(back_populates="bank_accounts")
+    categories: Mapped[list["CategoryModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    bank_accounts: Mapped[list["BankAccountModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
 
     system_categories = lambda: relationship(
         primaryjoin=or_(
