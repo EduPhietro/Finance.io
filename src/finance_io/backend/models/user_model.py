@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from finance_io.backend.models.cateogories_model import CategoryModel
     from finance_io.backend.models.bank_account_model import BankAccountModel
     from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
+    from finance_io.backend.models.recurrence_rule_model import RecurrenceRuleModel
 
 
 class UserModel(Base):
@@ -93,6 +94,13 @@ class UserModel(Base):
     )
 
     installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
