@@ -4,7 +4,6 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import (
     UUID,
@@ -20,15 +19,17 @@ from sqlalchemy import (
 
 from finance_io.backend.database.settings import Base
 
+
 if TYPE_CHECKING:
-    from finance_io.backend.models import UserModel
+    from finance_io.backend.models.card_model import CardModel
+    from finance_io.backend.models.user_model import UserModel
 
 
 class BankAccountModel(Base):
     __tablename__ = "BANK_ACCOUNT"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID, primary_key=True, server_default=func.uuidv7()
+        UUID(as_uuid=True), primary_key=True, server_default=func.uuidv7()
     )
 
     nickname: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -53,9 +54,9 @@ class BankAccountModel(Base):
         NUMERIC(14, 2), nullable=False, server_default="0.0"
     )
 
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    deleted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="TRUE"
@@ -67,7 +68,17 @@ class BankAccountModel(Base):
     )
 
     # Relationships object
-    user: Mapped["UserModel | None"] = relationship(back_populates="bank_accounts")
+    user: Mapped["UserModel | None"] = relationship(
+        back_populates="bank_accounts",
+        lazy="selectin",
+    )
+
+    cards: Mapped[list["CardModel"]] = relationship(
+        back_populates="bank_account",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -83,7 +94,7 @@ class BankAccountModel(Base):
             "initial_balance >= 0.00", name="check_initial_balance_non_negative"
         ),
         CheckConstraint(
-            "identification_color ~ '^#[0-9A-F-a-f]{6}$'",
+            "identification_color ~ '^#[0-9A-Fa-f]{6}$'",
             name="check_indetification_color_format",
         ),
         UniqueConstraint(
