@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from finance_io.backend.models.card_model import CardModel
     from finance_io.backend.models.cateogories_model import CategoryModel
     from finance_io.backend.models.user_model import UserModel
+    from finance_io.backend.models.transaction_model import TransactionModel
 
 
 class RecurrenceRuleModel(Base):
@@ -119,6 +120,11 @@ class RecurrenceRuleModel(Base):
 
     card: Mapped["CardModel | None"] = relationship(
         back_populates="recurrence_rules",
+        lazy="selectin",
+    )
+
+    transactions: Mapped[list["TransactionModel"]] = relationship(
+        back_populates="recurrence_rule",
         lazy="selectin",
     )
 

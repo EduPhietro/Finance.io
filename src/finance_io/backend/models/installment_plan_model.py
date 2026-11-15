@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from finance_io.backend.models.card_model import CardModel
     from finance_io.backend.models.cateogories_model import CategoryModel
     from finance_io.backend.models.user_model import UserModel
+    from finance_io.backend.models.transaction_model import TransactionModel
 
 
 class InstallmentPlanModel(Base):
@@ -95,6 +96,11 @@ class InstallmentPlanModel(Base):
 
     card: Mapped["CardModel | None"] = relationship(
         back_populates="installment_plans",
+        lazy="selectin",
+    )
+
+    transactions: Mapped[list["TransactionModel"]] = relationship(
+        back_populates="installment_plan",
         lazy="selectin",
     )
 

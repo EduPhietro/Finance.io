@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from finance_io.backend.models.bank_account_model import BankAccountModel
     from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
     from finance_io.backend.models.recurrence_rule_model import RecurrenceRuleModel
+    from finance_io.backend.models.transaction_model import TransactionModel
 
 
 class UserModel(Base):
@@ -101,6 +102,13 @@ class UserModel(Base):
     )
 
     recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
