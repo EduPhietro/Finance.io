@@ -44,6 +44,7 @@ function Login({ onNavigate }) {
   setMensagem('')
 }
 
+
 function handleSubmit(event) {
   event.preventDefault()
 
@@ -51,7 +52,7 @@ function handleSubmit(event) {
 
   if (!form.email.trim()) {
     novosErros.email = 'Informe seu e-mail.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+  } else if (!validarEmail(form.email)) {
     novosErros.email = 'Digite um e-mail válido.'
   }
 
@@ -63,13 +64,8 @@ function handleSubmit(event) {
   setMensagem('')
 
   if (Object.keys(novosErros).length === 0) {
-    setMensagem('Dados preenchidos corretamente!')
+    onNavigate('dashboard')
   }
-
-  if (Object.keys(novosErros).length === 0) {
-  setMensagem('Campos preenchidos! Aguardando autenticação.')
-  }
-
 }
   return (
     <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
@@ -216,20 +212,16 @@ function handleSubmit(event) {
           )}
 
           </form>
-
+          
           <p className="text-center text-sm text-gray-500 mt-8">
             Ainda não tem uma conta?{' '}
-            <a
-              href="#"
+            <button
+              type="button"
+              onClick={() => onNavigate('cadastro')}
               className="text-[#008A68] font-semibold"
             >
-             <button
-      type="button"
-      onClick={() => onNavigate('cadastro')}
-          >
-        Criar conta
-</button>
-            </a>
+              Criar conta
+            </button>
           </p>
 
         </div>
