@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -17,7 +16,7 @@ from sqlalchemy import (
     func,
     Boolean,
     DateTime,
-    text
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,10 +48,14 @@ class CardModel(Base):
         NUMERIC(14, 2),
         nullable=True,
     )
-    
-    identification_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#059669")
-    
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="TRUE")
+
+    identification_color: Mapped[str] = mapped_column(
+        String(7), nullable=False, server_default="#059669"
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="TRUE"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -103,8 +106,6 @@ class CardModel(Base):
         back_populates="card",
         lazy="selectin",
     )
-    
-    
 
     __table_args__ = (
         CheckConstraint(
@@ -131,16 +132,15 @@ class CardModel(Base):
         ),
         CheckConstraint(
             "identification_color ~ '^#[0-9A-Fa-f]{6}$'",
-            name="check_cards_identification_color_format"
+            name="check_cards_identification_color_format",
         ),
         Index(
-        "unique_active_card_per_bank_account",      
-        "bank_account_id",
-        "last_four_digits",
-        "expiration_date",
-        "card_type",
-        unique=True,
-        postgresql_where=text("deleted_at IS NULL")
-            
-        )
+            "unique_active_card_per_bank_account",
+            "bank_account_id",
+            "last_four_digits",
+            "expiration_date",
+            "card_type",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
     )
