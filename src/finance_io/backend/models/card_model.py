@@ -1,3 +1,4 @@
+"""Model ORM de cartões."""
 
 import uuid
 from datetime import date
@@ -17,7 +18,7 @@ from sqlalchemy import (
     func,
     Boolean,
     DateTime,
-    text
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,9 +26,22 @@ from finance_io.backend.database.settings import Base
 
 if TYPE_CHECKING:
     from finance_io.backend.models.bank_account_model import BankAccountModel
+    from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
+    from finance_io.backend.models.recurrence_rule_model import RecurrenceRuleModel
+    from finance_io.backend.models.transaction_model import TransactionModel
 
 
 class CardModel(Base):
+    """Representa um cartão vinculado a uma conta bancária.
+
+    Armazena somente dados não sensíveis de identificação, como apelido e
+    quatro últimos dígitos, e conecta o cartão às operações financeiras.
+
+    Notes:
+        As constraints exigem limite positivo para crédito, nenhum limite para
+        débito e quatro dígitos numéricos. O número completo nunca é armazenado.
+    """
+
     __tablename__ = "CARDS"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -46,10 +60,14 @@ class CardModel(Base):
         NUMERIC(14, 2),
         nullable=True,
     )
-    
-    identification_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#059669")
-    
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="TRUE")
+
+    identification_color: Mapped[str] = mapped_column(
+        String(7), nullable=False, server_default="#059669"
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="TRUE"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -85,8 +103,21 @@ class CardModel(Base):
         back_populates="cards",
         lazy="selectin",
     )
-    
-    
+
+    installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
+        back_populates="card",
+        lazy="selectin",
+    )
+
+    recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
+        back_populates="card",
+        lazy="selectin",
+    )
+
+    transactions: Mapped[list["TransactionModel"]] = relationship(
+        back_populates="card",
+        lazy="selectin",
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -113,16 +144,15 @@ class CardModel(Base):
         ),
         CheckConstraint(
             "identification_color ~ '^#[0-9A-Fa-f]{6}$'",
-            name="check_cards_identification_color_format"
+            name="check_cards_identification_color_format",
         ),
         Index(
-        "unique_active_card_per_bank_account",      
-        "bank_account_id",
-        "last_four_digits",
-        "expiration_date",
-        "card_type",
-        unique=True,
-        postgresql_where=text("deleted_at IS NULL")
-            
-        )
+            "unique_active_card_per_bank_account",
+            "bank_account_id",
+            "last_four_digits",
+            "expiration_date",
+            "card_type",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
     )

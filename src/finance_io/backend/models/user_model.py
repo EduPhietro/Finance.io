@@ -1,3 +1,5 @@
+"""Model ORM de usuários."""
+
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -12,9 +14,24 @@ if TYPE_CHECKING:
     from finance_io.backend.models.address_model import AddressModel
     from finance_io.backend.models.cateogories_model import CategoryModel
     from finance_io.backend.models.bank_account_model import BankAccountModel
+    from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
+    from finance_io.backend.models.recurrence_rule_model import RecurrenceRuleModel
+    from finance_io.backend.models.transaction_model import TransactionModel
 
 
 class UserModel(Base):
+    """Representa a identidade persistida de um usuário.
+
+    Armazena dados de cadastro, credencial protegida por hash e timestamps de
+    auditoria. O model é a raiz dos relacionamentos com endereços, categorias,
+    contas, parcelamentos, recorrências e transações.
+
+    Notes:
+        ``username`` e ``email`` possuem restrição de unicidade. ``deleted_at``
+        permite exclusão lógica, embora os relacionamentos estejam configurados
+        para exclusão em cascata quando houver remoção física.
+    """
+
     __tablename__ = "USERS"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -85,6 +102,27 @@ class UserModel(Base):
     )
 
     bank_accounts: Mapped[list["BankAccountModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,

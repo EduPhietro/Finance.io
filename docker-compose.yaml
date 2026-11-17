@@ -2,12 +2,23 @@
 # ============================================================
 # FINANCE.IO — AMBIENTE DE DESENVOLVIMENTO
 # ============================================================
+#
+# Infraestrutura composta por três serviços:
+#
+# 1. PostgreSQL 18 — Banco de dados relacional.
+# 2. Redis 7      — Cache e armazenamento em memória.
+# 3. FastAPI      — API backend desenvolvida em Python 3.14.
+#
+# O Docker Compose cria uma rede interna automaticamente,
+# permitindo que os serviços se comuniquem pelos seus nomes.
+#
+# ============================================================
 
-# Nome do projeto Docker Compose.
-# Utilizado para identificar e agrupar seus recursos.
+# Define o nome do projeto Docker Compose.
+# Utilizado como prefixo dos recursos gerenciados pelo projeto.
 name: finance-dev
 
-# Declaração dos serviços executados em contêineres.
+# Declara os serviços executados em contêineres.
 services:
 
   # ==========================================================
@@ -15,124 +26,163 @@ services:
   # ==========================================================
   db:
 
-    # Imagem oficial PostgreSQL 18 baseada no Alpine Linux.
+    # Imagem oficial do PostgreSQL 18 baseada no Alpine Linux.
     image: postgres:18-alpine
 
-    # Nome atribuído ao contêiner.
+    # Define o nome do contêiner PostgreSQL.
     container_name: postgresql
 
     # Reinicia automaticamente o contêiner, exceto quando
     # interrompido manualmente.
     restart: unless-stopped
 
-    # Variáveis de ambiente para inicialização do PostgreSQL.
-    # Os valores são obtidos do arquivo .env pelo Compose.
+    # Define as variáveis de inicialização do PostgreSQL.
+    # Os valores são obtidos do arquivo .env pelo Docker Compose.
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}         # Usuário
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD} # Senha
-      - POSTGRES_DB=${POSTGRES_DB}             # Banco inicial
+      - POSTGRES_USER=${POSTGRES_USER}          # Usuário administrador.
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # Senha do usuário.
+      - POSTGRES_DB=${POSTGRES_DB}              # Banco inicial.
 
-    # Publicação de portas no formato:
-    # IP_DO_HOST:PORTA_DO_HOST:PORTA_CONTAINER
+    # Publica a porta do PostgreSQL no computador local.
     #
-    # 127.0.0.1 restringe o acesso ao host local.
-    # 54320 é a porta externa; 5432 é a porta do PostgreSQL.
+    # Formato:
+    # IP_HOST:PORTA_HOST:PORTA_CONTAINER
+    #
+    # 127.0.0.1 limita a publicação à interface de loopback.
+    # 54320 é a porta utilizada pelo computador.
+    # 5432 é a porta interna do PostgreSQL.
     ports:
       - "127.0.0.1:54320:5432"
 
-    # Montagem do volume persistente.
+    # Define os volumes montados no contêiner.
     volumes:
 
-      # Volume persistente dos dados PostgreSQL 18.
-      # rw permite leitura e escrita.
+      # Armazena os arquivos do PostgreSQL de forma persistente.
+      #
+      # Os dados permanecem armazenados mesmo após a remoção
+      # e recriação do contêiner, enquanto o volume existir.
+      #
+      # rw permite operações de leitura e escrita.
       - postgresql:/var/lib/postgresql:rw
 
-    # Verifica periodicamente a disponibilidade do PostgreSQL.
+    # Configura a verificação de integridade do serviço.
     healthcheck:
 
-      # pg_isready verifica se o servidor aceita conexões.
-      # $$ preserva a variável para expansão no contêiner.
+      # pg_isready verifica se o PostgreSQL aceita conexões.
+      #
+      # $$ impede que o Docker Compose substitua a variável,
+      # permitindo sua expansão dentro do contêiner.
       test:
         - CMD-SHELL
         - 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
       interval: 1m       # Intervalo entre verificações.
-      timeout: 30s       # Tempo máximo por verificação.
-      retries: 5         # Falhas consecutivas toleradas.
-      start_period: 30s  # Período inicial de tolerância.
+      timeout: 30s       # Tempo máximo de cada verificação.
+      retries: 5         # Falhas consecutivas antes de unhealthy.
+      start_period: 30s  # Tolerância inicial durante a inicialização.
 
   # ==========================================================
-  # REDIS — ARMAZENAMENTO EM MEMÓRIA / CACHE
+  # REDIS — CACHE E ARMAZENAMENTO EM MEMÓRIA
   # ==========================================================
   redis:
 
-    # Constrói uma imagem personalizada usando o Dockerfile.
-    # O Dockerfile instala o utilitário envsubst.
+    # Constrói uma imagem personalizada do Redis.
+    #
+    # O Dockerfile deve disponibilizar o utilitário envsubst,
+    # utilizado para gerar a configuração ACL dinamicamente.
     build:
+
+      # Diretório utilizado como contexto de construção.
       context: ./docker/redis
+
+      # Localização do Dockerfile em relação ao contexto.
       dockerfile: Dockerfile
 
-    # Nome e tag da imagem construída.
+    # Define o nome e a tag da imagem construída.
     image: finance-redis:7
 
-    # Nome atribuído ao contêiner Redis.
+    # Define o nome do contêiner Redis.
     container_name: redis-finance
 
-    # Reinicia automaticamente, exceto quando parado
+    # Reinicia automaticamente, exceto quando interrompido
     # manualmente.
     restart: unless-stopped
 
-    # Credenciais fornecidas pelo arquivo .env.
-    # Serão utilizadas para gerar o arquivo ACL.
+    # Define as credenciais utilizadas na configuração ACL.
+    #
+    # Os valores são obtidos do arquivo .env e disponibilizados
+    # como variáveis de ambiente dentro do contêiner.
     environment:
-      - REDIS_USER=${REDIS_USER}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_USER=${REDIS_USER}          # Usuário Redis.
+      - REDIS_PASSWORD=${REDIS_PASSWORD}  # Senha Redis.
 
-    # Publica a porta Redis somente no host local.
+    # Publica a porta Redis somente no computador local.
+    #
+    # 127.0.0.1 restringe o acesso à interface de loopback.
     # 6379 é a porta padrão do Redis.
     ports:
       - "127.0.0.1:6379:6379"
 
-    # Montagens de arquivos e persistência de dados.
+    # Define os arquivos e volumes montados no contêiner.
     volumes:
 
-      # Monta o template ACL no contêiner.
-      # O arquivo contém referências às variáveis de ambiente.
-      # ro impede modificações no arquivo original.
+      # Monta o template de configuração ACL.
+      #
+      # O arquivo contém referências às variáveis de ambiente
+      # REDIS_USER e REDIS_PASSWORD.
+      #
+      # ro habilita somente leitura.
       - ./docker/redis/users.acl.template:/usr/local/etc/redis/users.acl.template:ro
 
-      # Volume persistente para os dados do Redis.
+      # Volume persistente para os arquivos de dados do Redis.
+      #
+      # A persistência AOF será habilitada na inicialização.
       # rw permite leitura e escrita.
       - redis:/data:rw
 
-    # Define o interpretador que executará o command.
+    # Substitui o ponto de entrada padrão do contêiner.
+    #
+    # /bin/sh executa o interpretador de comandos.
+    # -e encerra a execução em caso de erro.
+    # -c permite executar o script informado em command.
     entrypoint:
-      - /bin/sh  # Shell disponível no Alpine Linux.
-      - -ec      # -e: encerra em erro; -c: executa o script.
+      - /bin/sh
+      - -ec
 
-    # Script de inicialização do contêiner.
-    # O símbolo | permite escrever múltiplas linhas em YAML.
+    # Define o script executado na inicialização.
+    #
+    # A sintaxe | permite escrever comandos em múltiplas linhas.
+    # $$ impede a interpolação antecipada das variáveis.
     command:
-    - |
+      - |
 
-      # Substitui REDIS_USER e REDIS_PASSWORD no template.
-      envsubst '$${REDIS_USER} $${REDIS_PASSWORD}' \
-        < /usr/local/etc/redis/users.acl.template \
-        > /tmp/users.acl
+        # Substitui as variáveis do template ACL.
+        # Gera o arquivo final com as credenciais configuradas.
+        envsubst '$${REDIS_USER} $${REDIS_PASSWORD}' \
+          < /usr/local/etc/redis/users.acl.template \
+          > /tmp/users.acl
 
-      # Inicia o Redis após gerar o arquivo ACL.
-      exec redis-server \
-        --appendonly yes \
-        --aclfile /tmp/users.acl
+        # Inicializa o Redis utilizando a configuração ACL.
+        #
+        # --appendonly yes habilita a persistência AOF.
+        # --aclfile define o arquivo de autenticação.
+        #
+        # exec substitui o processo do shell pelo Redis.
+        exec redis-server \
+          --appendonly yes \
+          --aclfile /tmp/users.acl
 
-    # Verifica a disponibilidade do Redis com autenticação.
+    # Configura a verificação de integridade do Redis.
     healthcheck:
 
-      # CMD-SHELL executa o comando em um Shell.
-      # REDISCLI_AUTH fornece a senha ao redis-cli.
+      # Executa o comando PING com autenticação.
+      #
+      # REDISCLI_AUTH fornece a senha para o redis-cli.
       # --user informa o usuário configurado na ACL.
-      # ping verifica se o servidor responde.
-      # grep -qx PONG exige a resposta exata PONG.
+      # grep -qx PONG verifica a resposta exata.
+      #
+      # O serviço será considerado saudável quando
+      # responder PONG corretamente.
       test:
         - CMD-SHELL
         - 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli --user "$$REDIS_USER" ping | grep -qx PONG'
@@ -140,18 +190,112 @@ services:
       interval: 1m       # Intervalo entre verificações.
       timeout: 30s       # Tempo máximo por verificação.
       retries: 5         # Falhas consecutivas toleradas.
-      start_period: 10s  # Período inicial de tolerância.
+      start_period: 10s  # Tolerância inicial durante a inicialização.
+
+  # ==========================================================
+  # FASTAPI — BACKEND FINANCE.IO
+  # ==========================================================
+  api:
+
+    # Constrói a imagem da aplicação FastAPI.
+    build:
+
+      # Utiliza a raiz do projeto como contexto.
+      #
+      # Permite copiar pyproject.toml, uv.lock e os arquivos
+      # da aplicação durante a construção da imagem.
+      context: .
+
+      # Caminho do Dockerfile relativo ao contexto.
+      dockerfile: docker/api/Dockerfile
+
+    # Define o nome e a tag da imagem construída.
+    #
+    # 3.14 identifica a versão do Python utilizada no projeto,
+    # conforme a configuração do Dockerfile.
+    image: finance-api:3.14
+
+    # Define o nome do contêiner da aplicação.
+    container_name: finance-api
+
+    # Reinicia automaticamente, exceto quando interrompido
+    # manualmente.
+    restart: unless-stopped
+
+    # Carrega as variáveis de ambiente do arquivo .env.
+    #
+    # Essas variáveis ficam disponíveis para a aplicação
+    # Python durante a execução do contêiner.
+    env_file:
+      - .env
+
+    # Define ou sobrescreve variáveis de ambiente da API.
+    #
+    # Os serviços utilizam os nomes internos da rede Docker
+    # para estabelecer comunicação.
+    #
+    # localhost dentro do contêiner aponta para o próprio
+    # contêiner e não para outros serviços.
+    environment:
+
+      # URL utilizada pela aplicação dentro da rede do Compose.
+      # Sobrescreve a URL do .env, que aponta para a porta publicada no host
+      # e continua sendo utilizada pelo Alembic executado localmente.
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+
+      # Hostname do serviço PostgreSQL.
+      DB_HOST: db
+
+      # Porta interna do PostgreSQL.
+      DB_PORT: "5432"
+
+      # Hostname do serviço Redis.
+      REDIS_HOST: redis
+
+      # Porta interna do Redis.
+      REDIS_PORT: "6379"
+
+    # Define dependências de inicialização da aplicação.
+    #
+    # A API será iniciada somente após PostgreSQL e Redis
+    # atingirem o estado healthy definido nos healthchecks.
+    #
+    # Isso não garante que os serviços permanecerão disponíveis
+    # durante toda a execução da aplicação.
+    depends_on:
+
+      # Aguarda o PostgreSQL ficar saudável.
+      db:
+        condition: service_healthy
+
+      # Aguarda o Redis ficar saudável.
+      redis:
+        condition: service_healthy
+
+    # Publica a porta do servidor FastAPI.
+    #
+    # 127.0.0.1 restringe o acesso ao computador local.
+    # 8000 é a porta publicada no host.
+    # 8000 é a porta utilizada pelo Uvicorn no contêiner.
+    ports:
+      - "127.0.0.1:8000:8000"
 
 # ============================================================
 # VOLUMES PERSISTENTES
 # ============================================================
 
-# Volumes gerenciados pelo Docker.
-# Preservam os dados após remoção ou recriação de contêineres.
+# Declara os volumes gerenciados pelo Docker Compose.
+#
+# Esses volumes permitem conservar os dados dos serviços
+# mesmo quando os respectivos contêineres são recriados.
+#
+# ATENÇÃO:
+# docker compose down -v remove os volumes declarados
+# e pode provocar perda dos dados armazenados.
 volumes:
 
-  # Armazena os dados do PostgreSQL.
+  # Volume persistente dos arquivos do PostgreSQL.
   postgresql:
 
-  # Armazena os dados persistentes do Redis.
+  # Volume persistente dos arquivos do Redis.
   redis:

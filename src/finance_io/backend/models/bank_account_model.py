@@ -1,3 +1,5 @@
+"""Model ORM de contas bancárias."""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -22,10 +24,23 @@ from finance_io.backend.database.settings import Base
 
 if TYPE_CHECKING:
     from finance_io.backend.models.card_model import CardModel
+    from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
+    from finance_io.backend.models.recurrence_rule_model import RecurrenceRuleModel
+    from finance_io.backend.models.transaction_model import TransactionModel
     from finance_io.backend.models.user_model import UserModel
 
 
 class BankAccountModel(Base):
+    """Representa uma conta bancária cadastrada na aplicação.
+
+    Mantém dados de identificação, saldo inicial e estado da conta, além dos
+    relacionamentos com cartões, parcelamentos, recorrências e transações.
+
+    Notes:
+        As constraints validam tipo, saldo, cor e unicidade da conta por
+        usuário. Violações são reportadas pelo banco como erros de integridade.
+    """
+
     __tablename__ = "BANK_ACCOUNT"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -77,6 +92,21 @@ class BankAccountModel(Base):
         back_populates="bank_account",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        lazy="selectin",
+    )
+
+    installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
+        back_populates="account",
+        lazy="selectin",
+    )
+
+    recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
+        back_populates="account",
+        lazy="selectin",
+    )
+
+    transactions: Mapped[list["TransactionModel"]] = relationship(
+        back_populates="account",
         lazy="selectin",
     )
 
