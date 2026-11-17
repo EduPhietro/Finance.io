@@ -1,14 +1,26 @@
+"""Carregamento das configurações da aplicação."""
+
 from functools import lru_cache
 
 
 from typing import Literal
 
-from dotenv import load_dotenv
 from pydantic import PostgresDsn, SecretStr, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Centraliza as configurações da aplicação.
+
+    Os valores são carregados das variáveis de ambiente e, em
+    desenvolvimento, do arquivo ``.env``. O Pydantic valida tipos e campos
+    obrigatórios durante a inicialização da aplicação.
+
+    Raises:
+        pydantic.ValidationError: Se uma configuração obrigatória estiver
+            ausente ou possuir valor inválido.
+    """
+
     app_name: str = "Finance.io"
     environment: Literal["Production", "Developer", "Test"] = "Developer"
     debug: bool = False
@@ -27,6 +39,15 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Carrega e reutiliza as configurações validadas.
+
+    Returns:
+        A instância compartilhada de :class:`Settings`.
+
+    Raises:
+        pydantic.ValidationError: Se o ambiente não fornecer valores válidos.
+    """
+
     return Settings()  # type:ignore[reportCallIssue]
 
 

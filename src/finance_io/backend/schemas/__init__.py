@@ -1,3 +1,5 @@
+"""Schemas de entrada e saída da API."""
+
 from .register_user_schema import RegisterUserSchema
 from .register_user_response_schema import RegisterUserResponseSchema
 

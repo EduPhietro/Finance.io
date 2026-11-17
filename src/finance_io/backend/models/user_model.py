@@ -1,3 +1,5 @@
+"""Model ORM de usuários."""
+
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -18,6 +20,18 @@ if TYPE_CHECKING:
 
 
 class UserModel(Base):
+    """Representa a identidade persistida de um usuário.
+
+    Armazena dados de cadastro, credencial protegida por hash e timestamps de
+    auditoria. O model é a raiz dos relacionamentos com endereços, categorias,
+    contas, parcelamentos, recorrências e transações.
+
+    Notes:
+        ``username`` e ``email`` possuem restrição de unicidade. ``deleted_at``
+        permite exclusão lógica, embora os relacionamentos estejam configurados
+        para exclusão em cascata quando houver remoção física.
+    """
+
     __tablename__ = "USERS"
 
     id: Mapped[uuid.UUID] = mapped_column(

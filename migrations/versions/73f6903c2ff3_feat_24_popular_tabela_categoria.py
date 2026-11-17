@@ -12,8 +12,6 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-from finance_io.backend.models import CategoryModel
-
 categories_table = sa.table(
     "CATEGORIES",
     sa.Column("name", sa.String),

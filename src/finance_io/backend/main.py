@@ -1,3 +1,5 @@
+"""Ponto de entrada da API FastAPI."""
+
 from fastapi import FastAPI
 
 from finance_io.backend.routes import app_router

@@ -1,3 +1,5 @@
+"""Model ORM de contas bancárias."""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -29,6 +31,16 @@ if TYPE_CHECKING:
 
 
 class BankAccountModel(Base):
+    """Representa uma conta bancária cadastrada na aplicação.
+
+    Mantém dados de identificação, saldo inicial e estado da conta, além dos
+    relacionamentos com cartões, parcelamentos, recorrências e transações.
+
+    Notes:
+        As constraints validam tipo, saldo, cor e unicidade da conta por
+        usuário. Violações são reportadas pelo banco como erros de integridade.
+    """
+
     __tablename__ = "BANK_ACCOUNT"
 
     id: Mapped[uuid.UUID] = mapped_column(

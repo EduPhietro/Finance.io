@@ -1,3 +1,5 @@
+"""Model ORM de categorias financeiras."""
+
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -23,6 +25,17 @@ if TYPE_CHECKING:
 
 
 class CategoryModel(Base):
+    """Representa uma categoria de receita ou despesa.
+
+    Categorias com ``user_id`` nulo pertencem ao sistema; as demais são
+    personalizadas pelo usuário. Transações, recorrências e parcelamentos usam
+    a categoria para classificação.
+
+    Notes:
+        As constraints do banco validam tipo, nome e formato da cor. Violações
+        são reportadas como erros de integridade do SQLAlchemy.
+    """
+
     __tablename__ = "CATEGORIES"
 
     id: Mapped[uuid.UUID] = mapped_column(

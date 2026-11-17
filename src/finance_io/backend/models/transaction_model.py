@@ -1,3 +1,5 @@
+"""Model ORM de transações financeiras."""
+
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -30,6 +32,17 @@ if TYPE_CHECKING:
 
 
 class TransactionModel(Base):
+    """Representa uma receita ou despesa do usuário.
+
+    Registra valor, estado, datas e origem financeira. Pode ser independente ou
+    pertencer a uma regra de recorrência ou a um plano de parcelamento.
+
+    Notes:
+        As constraints validam valores, status, datas, forma de pagamento e
+        exclusividade entre recorrência e parcelamento. Violações resultam em
+        erros de integridade emitidos pelo banco.
+    """
+
     __tablename__ = "TRANSACTIONS"
 
     id: Mapped[uuid.UUID] = mapped_column(
