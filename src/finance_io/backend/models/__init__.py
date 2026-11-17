@@ -1,3 +1,5 @@
+"""Models ORM da aplicação."""
+
 from .user_model import UserModel
 from .address_model import AddressModel
 from .cateogories_model import CategoryModel

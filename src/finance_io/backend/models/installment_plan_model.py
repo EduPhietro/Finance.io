@@ -1,3 +1,5 @@
+"""Model ORM de planos de parcelamento."""
+
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -27,6 +29,16 @@ if TYPE_CHECKING:
 
 
 class InstallmentPlanModel(Base):
+    """Representa o plano de uma despesa parcelada.
+
+    Define valor total, quantidade e situação do parcelamento, relacionando-o
+    ao usuário, categoria e forma de pagamento usada pelas transações geradas.
+
+    Notes:
+        As constraints garantem valores positivos, ao menos duas parcelas e
+        coerência entre conta e cartão conforme a forma de pagamento.
+    """
+
     __tablename__ = "INSTALLMENT_PLANS"
 
     id: Mapped[uuid.UUID] = mapped_column(

@@ -1,3 +1,5 @@
+"""Model ORM de regras de recorrência."""
+
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -28,6 +30,16 @@ if TYPE_CHECKING:
 
 
 class RecurrenceRuleModel(Base):
+    """Representa uma regra de repetição de transações.
+
+    Define frequência, intervalo e período de vigência e mantém as referências
+    necessárias para gerar receitas ou despesas recorrentes.
+
+    Notes:
+        As constraints validam frequência, datas, tipo da transação e
+        coerência entre fonte de renda, forma de pagamento, conta e cartão.
+    """
+
     __tablename__ = "RECURRENCE_RULES"
 
     id: Mapped[uuid.UUID] = mapped_column(

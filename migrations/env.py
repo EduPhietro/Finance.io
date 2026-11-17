@@ -9,7 +9,10 @@ from finance_io.backend.database.settings import Base
 from finance_io.backend.core.config import settings
 
 
-import finance_io.backend.models
+# Carrega os models para registrá-los em ``Base.metadata`` antes de o
+# Alembic comparar o schema. O import é intencionalmente usado por efeito
+# colateral.
+import finance_io.backend.models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

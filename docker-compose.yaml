@@ -238,6 +238,11 @@ services:
     # contêiner e não para outros serviços.
     environment:
 
+      # URL utilizada pela aplicação dentro da rede do Compose.
+      # Sobrescreve a URL do .env, que aponta para a porta publicada no host
+      # e continua sendo utilizada pelo Alembic executado localmente.
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+
       # Hostname do serviço PostgreSQL.
       DB_HOST: db
 

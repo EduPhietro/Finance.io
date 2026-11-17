@@ -1,3 +1,5 @@
+"""Model ORM de endereços."""
+
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -12,6 +14,16 @@ if TYPE_CHECKING:
 
 
 class AddressModel(Base):
+    """Representa um endereço pertencente a um usuário.
+
+    Armazena os dados postais e identifica se o registro corresponde à
+    residência principal. A chave ``user_id`` liga o endereço ao proprietário.
+
+    Notes:
+        A remoção física do usuário exclui seus endereços em cascata. O campo
+        ``deleted_at`` permite que operações futuras adotem exclusão lógica.
+    """
+
     __tablename__ = "ADDRESSES"
 
     id: Mapped[uuid.UUID] = mapped_column(

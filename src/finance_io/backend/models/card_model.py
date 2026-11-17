@@ -1,3 +1,5 @@
+"""Model ORM de cartões."""
+
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -30,6 +32,16 @@ if TYPE_CHECKING:
 
 
 class CardModel(Base):
+    """Representa um cartão vinculado a uma conta bancária.
+
+    Armazena somente dados não sensíveis de identificação, como apelido e
+    quatro últimos dígitos, e conecta o cartão às operações financeiras.
+
+    Notes:
+        As constraints exigem limite positivo para crédito, nenhum limite para
+        débito e quatro dígitos numéricos. O número completo nunca é armazenado.
+    """
+
     __tablename__ = "CARDS"
 
     id: Mapped[uuid.UUID] = mapped_column(
