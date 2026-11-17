@@ -1,16 +1,30 @@
 """Regras de negócio relacionadas a usuários."""
 
 import uuid
-
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 import bcrypt
+import jwt
+
 from finance_io.backend.repository import UserRepository
 from finance_io.backend.exceptions import (
     UsernameAlreadyExistsException,
     EmailAlreadyExistsException,
     UserNotFoundException,
+    InvalidCredentialsException,
 )
-from finance_io.backend.schemas import RegisterUserSchema, RegisterUserResponseSchema
+from finance_io.backend.schemas import (
+    RegisterUserSchema,
+    RegisterUserResponseSchema,
+    AuthenticateUserSchema,
+    JWTTokenSchema,
+    AuthenticatedUserSchema,
+)
+
+from finance_io.backend.core import settings
+
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION = timedelta(hours=12)
 
 
 class UserService:
@@ -66,7 +80,7 @@ class UserService:
                 full_name=data.full_name,
                 username=data.username,
                 email=data.email,
-                password_hash=str(password_hash),
+                password_hash=password_hash.decode("utf-8"),
             )
             self.session.commit()
             self.session.refresh(user)
@@ -100,7 +114,7 @@ class UserService:
             Exception: Se a exclusão não puder ser persistida.
         """
 
-        if self.repository.find_by_id(user_id) is not None:
+        if self.repository.find_by_id(user_id) is None:
             raise UserNotFoundException("O usuário não existe")
 
         try:
@@ -111,3 +125,77 @@ class UserService:
             raise Exception("Não foi possível deletar o usuário")
 
         return True
+
+    def authenticate(self, data: AuthenticateUserSchema) -> AuthenticatedUserSchema:
+        """Verifica as credenciais de um usuário.
+
+        O usuário é localizado pelo e-mail, quando informado, ou pelo username.
+        A senha recebida é comparada ao hash armazenado com ``bcrypt.checkpw``.
+
+        Args:
+            data: Identificador (e-mail ou username) e senha recebidos no login.
+
+        Returns:
+            Os dados públicos do usuário autenticado.
+
+        Raises:
+            InvalidCredentialsException: Se o usuário não existir ou a senha
+                estiver incorreta. Uma única exceção evita revelar qual das
+                credenciais falhou.
+        """
+
+        if data.email is not None:
+            user = self.repository.find_by_email(str(data.email))
+        elif data.username is not None:
+            user = self.repository.find_by_username(data.username)
+        else:
+            user = None
+
+        if user is None or not bcrypt.checkpw(
+            data.password.encode("utf-8"), user.password_hash.encode("utf-8")
+        ):
+            raise InvalidCredentialsException("Credenciais inválidas")
+
+        return AuthenticatedUserSchema(
+            id=user.id,
+            full_name=user.full_name,
+            username=user.username,
+            email=user.email,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+        )
+
+    def gen_jwt_token(self, data: AuthenticatedUserSchema) -> JWTTokenSchema:
+        """Gera o token de acesso JWT de um usuário autenticado.
+
+        O token é assinado com ``HS256`` usando ``settings.jwt_secret_token`` e
+        expira 12 horas após a emissão. O payload contém apenas as claims
+        registradas ``sub`` (id do usuário), ``iat`` (emissão), ``exp``
+        (expiração) e ``jti`` (identificador único do token).
+
+        Args:
+            data: Dados públicos do usuário retornados por :meth:`authenticate`.
+
+        Returns:
+            Schema com o token JWT assinado.
+
+        Notes:
+            O payload é apenas assinado, não criptografado. Dados sensíveis
+            nunca devem ser incluídos nele.
+        """
+
+        issued_at = datetime.now(timezone.utc)
+        payload = {
+            "sub": str(data.id),
+            "iat": issued_at,
+            "exp": issued_at + JWT_EXPIRATION,
+            "jti": str(uuid.uuid4()),
+        }
+
+        token = jwt.encode(
+            payload,
+            settings.jwt_secret_token.get_secret_value(),
+            algorithm=JWT_ALGORITHM,
+        )
+
+        return JWTTokenSchema(token=token, exp=int(JWT_EXPIRATION.seconds), type="Bearer")

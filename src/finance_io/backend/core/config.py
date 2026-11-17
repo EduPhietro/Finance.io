@@ -26,11 +26,15 @@ class Settings(BaseSettings):
     debug: bool = False
 
     database_url: PostgresDsn = Field(validation_alias="database_url")
-
+    # REDIS
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_user: str = Field(validation_alias="REDIS_USER")
     redis_password: SecretStr = Field(validation_alias="REDIS_PASSWORD")
+    
+    jwt_secret_token: SecretStr = Field(validation_alias="JWT_SECRET_TOKEN")
+    
+    
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
