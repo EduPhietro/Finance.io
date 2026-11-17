@@ -26,7 +26,12 @@ RUN uv sync --locked --no-dev
 # Porta da API
 EXPOSE 8000
 
-# Inicia o servidor
-CMD ["uvicorn", "finance_io.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Aplica as migrações pendentes e inicia o servidor.
+#
+# O Compose só inicia a API após o PostgreSQL ficar saudável, então o banco
+# já aceita conexões aqui. Se uma migração falhar, o servidor não sobe.
+# O exec substitui o shell pelo Uvicorn, que passa a receber os sinais de
+# encerramento do Docker.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn finance_io.backend.main:app --host 0.0.0.0 --port 8000"]
 
 

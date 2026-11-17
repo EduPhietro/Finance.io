@@ -132,7 +132,12 @@ dados locais de PostgreSQL e Redis.
 
 ### 3. Migrações do banco
 
-Com o PostgreSQL saudável, aplique todas as migrações:
+O contêiner da API executa `alembic upgrade head` a cada inicialização, antes
+de subir o servidor. Ao usar o Docker Compose, as migrações pendentes são
+aplicadas automaticamente, inclusive depois de recriar os volumes. Se uma
+migração falhar, a API não sobe; consulte `docker compose logs api`.
+
+Para aplicar as migrações a partir do host, com o PostgreSQL saudável:
 
 ```bash
 uv run alembic upgrade head
