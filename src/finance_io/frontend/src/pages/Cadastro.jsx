@@ -1,17 +1,36 @@
 import { useState } from 'react'
-import { Wallet, User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import {
+  Wallet,
+  User,
+  AtSign,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff
+} from 'lucide-react'
+import { cadastrarUsuario } from '../services/api'
 
 function Cadastro({ onNavigate }) {
 
   function validarEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
-    
+  function validarSenha(senha) {
+  return (
+    senha.length >= 8 &&
+    senha.length <= 72 &&
+    /[A-Z]/.test(senha) &&
+    /[a-z]/.test(senha) &&
+    /\d/.test(senha) &&
+    /[^A-Za-z0-9\s]/.test(senha)
+  )
+}
 
     const [mostrarSenha, setMostrarSenha] = useState(false)
     const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
     const [form, setForm] = useState({
         nome: '',
+        username: '',
         email: '',
         senha: '',
         confirmarSenha: ''
@@ -32,6 +51,15 @@ function Cadastro({ onNavigate }) {
     delete novosErros.nome
   }
 
+  if (name === 'username') {
+  if (value.length >= 3 && /^[A-Za-z0-9._]+$/.test(value)) {
+    delete novosErros.username
+  } else if (value.trim()) {
+    novosErros.username =
+      'Use pelo menos 3 caracteres, apenas letras, números, pontos ou _.'
+  }
+}
+
   if (name === 'email') {
     if (validarEmail(value)) {
       delete novosErros.email
@@ -40,12 +68,17 @@ function Cadastro({ onNavigate }) {
     }
   }
 
+  
+
   if (name === 'senha') {
-    if (value.length >= 8) {
-      delete novosErros.senha
-    } else if (value) {
-      novosErros.senha = 'A senha deve ter pelo menos 8 caracteres.'
-    }
+  if (!value) {
+    delete novosErros.senha
+  } else if (!validarSenha(value)) {
+    novosErros.senha =
+      'Use 8 caracteres, incluindo maiúscula, minúscula, número e símbolo.'
+  } else {
+    delete novosErros.senha
+  }
 
     if (novoForm.confirmarSenha) {
       if (value === novoForm.confirmarSenha) {
@@ -68,7 +101,7 @@ function Cadastro({ onNavigate }) {
   setMensagem('')
 }
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault()
 
   const novosErros = {}
@@ -77,16 +110,27 @@ function handleSubmit(event) {
     novosErros.nome = 'Informe seu nome completo.'
   }
 
+  if (!form.username.trim()) {
+  novosErros.username = 'Escolha um nome de usuário.'
+  } else if (
+    form.username.length < 3 ||
+    form.username.length > 100 ||
+    !/^[A-Za-z0-9._]+$/.test(form.username)
+  ) {
+    novosErros.username = 'Nome de usuário inválido.'
+  }
+
   if (!form.email.trim()) {
     novosErros.email = 'Informe seu e-mail.'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
     novosErros.email = 'Digite um e-mail válido.'
   }
 
-  if (!form.senha) {
+    if (!form.senha) {
     novosErros.senha = 'Informe uma senha.'
-  } else if (form.senha.length < 8) {
-    novosErros.senha = 'A senha deve ter pelo menos 8 caracteres.'
+  } else if (!validarSenha(form.senha)) {
+    novosErros.senha =
+      'Use 8 caracteres, incluindo maiúscula, minúscula, número e símbolo.'
   }
 
   if (!form.confirmarSenha) {
@@ -97,10 +141,24 @@ function handleSubmit(event) {
 
   setErros(novosErros)
   setMensagem('')
+    if (Object.keys(novosErros).length === 0) {
+      try {
+        const usuario = await cadastrarUsuario(form)
 
-  if (Object.keys(novosErros).length === 0) {
-    setMensagem('Cadastro validado! Em breve você poderá criar sua conta.')
-  }
+        setMensagem(`Conta criada com sucesso! Bem-vindo, ${usuario.full_name}.`)
+
+        setForm({
+          nome: '',
+          username: '',
+          email: '',
+          senha: '',
+          confirmarSenha: ''
+        })
+
+      } catch (error) {
+        setMensagem(error.message)
+      }
+    }
 }
 
 const [erros, setErros] = useState({})
@@ -186,6 +244,35 @@ const [mensagem, setMensagem] = useState('')
               </p>
             )}
 
+            </div>
+
+            {/* Nome de usuário */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Nome de usuário
+              </label>
+
+              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
+                erros.username ? 'border-red-500' : 'border-gray-200'
+              }`}>
+                <AtSign size={18} className="text-gray-400" />
+
+                <input
+                  type="text"
+                  name="username"
+                  value={form.username}
+                  onChange={handleChange}
+                  placeholder="Ex: joao.silva"
+                  maxLength={100}
+                  className="w-full py-3.5 outline-none bg-transparent text-sm"
+                />
+              </div>
+
+              {erros.username && (
+                <p className="text-red-500 text-xs mt-1">
+                  {erros.username}
+                </p>
+              )}
             </div>
 
             {/* E-mail */}

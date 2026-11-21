@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Wallet, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { autenticarUsuario } from '../services/api'
 
 function Login({ onNavigate }) {
   const [mostrarSenha, setMostrarSenha] = useState(false)
@@ -14,6 +15,7 @@ function Login({ onNavigate }) {
 
   const [erros, setErros] = useState({})
   const [mensagem, setMensagem] = useState('')
+  const [carregando, setCarregando] = useState(false)
 
  function handleChange(event) {
   const { name, value } = event.target
@@ -45,7 +47,8 @@ function Login({ onNavigate }) {
 }
 
 
-function handleSubmit(event) {
+
+async function handleSubmit(event) {
   event.preventDefault()
 
   const novosErros = {}
@@ -63,10 +66,28 @@ function handleSubmit(event) {
   setErros(novosErros)
   setMensagem('')
 
-  if (Object.keys(novosErros).length === 0) {
+  if (Object.keys(novosErros).length > 0) {
+    return
+  }
+
+  try {
+    setCarregando(true)
+
+    const resultado = await autenticarUsuario(form)
+
+    localStorage.setItem('financeio_token', resultado.token)
+    localStorage.setItem('financeio_token_type', resultado.type)
+    localStorage.setItem('financeio_token_exp', resultado.exp)
+
     onNavigate('dashboard')
+
+  } catch (error) {
+    setMensagem(error.message || 'E-mail ou senha incorretos.')
+  } finally {
+    setCarregando(false)
   }
 }
+
   return (
     <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
 
