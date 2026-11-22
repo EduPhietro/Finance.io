@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Wallet, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { autenticarUsuario } from '../services/api'
 
 function Login({ onNavigate }) {
   const [mostrarSenha, setMostrarSenha] = useState(false)
@@ -14,6 +15,7 @@ function Login({ onNavigate }) {
 
   const [erros, setErros] = useState({})
   const [mensagem, setMensagem] = useState('')
+  const [carregando, setCarregando] = useState(false)
 
  function handleChange(event) {
   const { name, value } = event.target
@@ -44,14 +46,16 @@ function Login({ onNavigate }) {
   setMensagem('')
 }
 
-function handleSubmit(event) {
+
+
+async function handleSubmit(event) {
   event.preventDefault()
 
   const novosErros = {}
 
   if (!form.email.trim()) {
     novosErros.email = 'Informe seu e-mail.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+  } else if (!validarEmail(form.email)) {
     novosErros.email = 'Digite um e-mail válido.'
   }
 
@@ -62,15 +66,37 @@ function handleSubmit(event) {
   setErros(novosErros)
   setMensagem('')
 
-  if (Object.keys(novosErros).length === 0) {
-    setMensagem('Dados preenchidos corretamente!')
+  if (Object.keys(novosErros).length > 0) {
+    return
   }
 
-  if (Object.keys(novosErros).length === 0) {
-  setMensagem('Campos preenchidos! Aguardando autenticação.')
-  }
+  try {
+    setCarregando(true)
 
+    
+      const resultado = await autenticarUsuario(form)
+
+      if (!resultado.access_token || !Number.isFinite(Number(resultado.expires_in))) {
+        throw new Error('Resposta de autenticação inválida.')
+      }
+
+      const expiracao =
+        Math.floor(Date.now() / 1000) + Number(resultado.expires_in)
+
+      localStorage.setItem('financeio_token', resultado.access_token)
+      localStorage.setItem('financeio_token_type', resultado.token_type)
+      localStorage.setItem('financeio_token_exp', String(expiracao))
+
+      onNavigate('dashboard')
+
+
+  } catch (error) {
+    setMensagem(error.message || 'E-mail ou senha incorretos.')
+  } finally {
+    setCarregando(false)
+  }
 }
+
   return (
     <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
 
@@ -202,34 +228,31 @@ function handleSubmit(event) {
             </div>
 
             {/* Botão */}
-            <button
-              type="submit"
-              className="w-full bg-[#008A68] hover:bg-[#075640] text-white font-semibold py-3.5 rounded-lg transition"
-            >
-              Entrar
+              <button
+                type="submit"
+                disabled={carregando}
+                className="w-full bg-[#008A68] hover:bg-[#075640] disabled:opacity-60 text-white font-semibold py-3.5 rounded-lg transition"
+              >
+                {carregando ? 'Entrando...' : 'Entrar'}
             </button>
 
             {mensagem && (
-            <p className="text-green-700 text-sm text-center">
+            <p className="text-red-600 text-sm text-center">
               {mensagem}
             </p>
           )}
 
           </form>
-
+          
           <p className="text-center text-sm text-gray-500 mt-8">
             Ainda não tem uma conta?{' '}
-            <a
-              href="#"
+            <button
+              type="button"
+              onClick={() => onNavigate('cadastro')}
               className="text-[#008A68] font-semibold"
             >
-             <button
-      type="button"
-      onClick={() => onNavigate('cadastro')}
-          >
-        Criar conta
-</button>
-            </a>
+              Criar conta
+            </button>
           </p>
 
         </div>
