@@ -1,0 +1,92 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{fontspec}
+\usepackage[portuguese, bidi=basic, provide=*]{babel}
+\babelprovide[import, onchar=ids fonts]{portuguese}
+\babelfont{rm}{Noto Sans}
+
+\usepackage{booktabs}
+\usepackage{enumitem}
+\setlist[itemize]{label=-}
+\setlist[enumerate]{leftmargin=*}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    pdftitle={Relatório da Atividade 1: Definição e Organização do Projeto Finance.io}
+}
+
+\title{\textbf{RELATÓRIO DA ATIVIDADE 1}\\Definição e Organização do Projeto de Software}
+\author{
+    Antonio Nilton Gomes Damasceno \and
+    Fábio Ribeiro Oliveira Filho \and
+    Henry Phietro Aguiar da Silva
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Integrantes da Equipe}
+\begin{enumerate}
+    \item Antonio Nilton Gomes Damasceno
+    \item Fábio Ribeiro Oliveira Filho
+    \item Henry Phietro Aguiar da Silva
+\end{enumerate}
+
+\section{Identificação do Sistema}
+\textbf{Nome do Sistema:} Finance.io
+
+\section{Descrição do Sistema}
+O \textbf{Finance.io} é uma aplicação simples de gestão financeira pessoal. Seu objetivo é permitir que uma pessoa registre manualmente suas entradas e saídas de dinheiro, organize as movimentações por conta e categoria e acompanhe a situação financeira em um painel consolidado.
+
+O produto não movimenta dinheiro de verdade. Ele funciona como uma ferramenta de registro, planejamento e consulta. O sistema também não se conecta automaticamente a bancos no MVP; os dados financeiros são informados e mantidos pelo próprio usuário.
+
+\section{Organização e Arquitetura do Sistema}
+
+\begin{table}[h]
+\centering
+\caption{Componentes e Tecnologias Utilizadas}
+\vspace{0.2cm}
+\begin{tabular}{lp{10cm}}
+\toprule
+\textbf{Componentes} & \textbf{Descrição e Tecnologias Utilizadas} \\
+\midrule
+Front-end & HTML, CSS, JavaScript, Vite e Tailwind. \\
+Back-end & Python 3.14. \\
+Banco de Dados & PostgreSQL. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Requisitos Principais do Sistema}
+
+\begin{table}[h]
+\centering
+\caption{Requisitos Funcionais do Sistema}
+\vspace{0.2cm}
+\begin{tabular}{lll}
+\toprule
+\textbf{Identificador} & \textbf{Tipo} & \textbf{Descrição do Requisito} \\
+\midrule
+RF01 & Funcional & Registrar Entradas Financeiras. \\
+RF02 & Funcional & Registrar Saídas Financeiras. \\
+RF03 & Funcional & Edição de Registros. \\
+RF04 & Funcional & Organizar as movimentações. \\
+RF05 & Funcional & Acompanhar os Registros. \\
+RF06 & Funcional & Oferecer Visão Geral das Finanças. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Links e Imagens, GitHub e Taiga}
+
+\begin{itemize}
+    \item \textbf{Repositório no GitHub:} \url{https://github.com/EduPhietro/Finance.io}
+    \item \textbf{Projeto no Taiga:} \url{https://tree.taiga.io/project/eduphietro-erpa/timeline}
+\end{itemize}
+
+\end{document}

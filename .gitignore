@@ -1,0 +1,5 @@
+# REMOVENDO .venv
+.venv
+
+# REMOVENDO ruff_cache
+.ruff_cache
