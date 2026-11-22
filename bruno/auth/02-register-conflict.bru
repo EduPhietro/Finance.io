@@ -1,0 +1,30 @@
+meta {
+  name: Cadastrar com e-mail repetido (409)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "full_name": "Usuário de Teste",
+    "username": "outro_{{test_suffix}}",
+    "email": "{{test_email}}",
+    "password": "Senha@123"
+  }
+}
+
+tests {
+  test("retorna HTTP 409", function () {
+    expect(res.getStatus()).to.equal(409);
+  });
+
+  test("segue o formato único de erro", function () {
+    expect(res.getBody().detail).to.be.a("string");
+  });
+}

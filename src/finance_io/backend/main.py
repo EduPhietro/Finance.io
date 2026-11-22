@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 
+from finance_io.backend.core.exception_handlers import register_exception_handlers
 from finance_io.backend.routes import app_router
 
 app = FastAPI(
@@ -14,3 +15,4 @@ app = FastAPI(
 )
 
 app.include_router(app_router)
+register_exception_handlers(app)
