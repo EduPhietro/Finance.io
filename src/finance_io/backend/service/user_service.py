@@ -129,7 +129,7 @@ class UserService:
             raise UserNotFoundException("O usuário não existe")
 
         try:
-            self.repository.delete_by_id(user_id)
+            self.repository.soft_delete(user_id)
             self.session.commit()
         except Exception:
             self.session.rollback()

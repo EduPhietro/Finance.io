@@ -1,6 +1,9 @@
 """Operações de persistência relacionadas a usuários."""
 
+from datetime import datetime
+
 from typing import Any
+import warnings 
 import uuid
 
 from sqlalchemy.orm import Session
@@ -63,7 +66,36 @@ class UserRepository:
         self.session.refresh(user)
         return user
 
-    # Delete
+
+
+    def soft_delete(self, user_id: uuid.UUID) -> bool:
+        
+        retrived_user = self.find_by_id(user_id)
+        
+        if not retrived_user:
+            return False
+        
+        retrived_user.deleted_at = datetime.now()
+        
+        self.session.flush()
+        self.session.refresh(retrived_user)
+        return True
+    
+    def hard_delete(self, user_id: uuid.UUID) -> bool:
+        
+        retrived_user = self.find_by_id(user_id)
+        
+        if not retrived_user:
+            return False
+        
+        self.session.delete(retrived_user)
+        self.session.flush()
+        return True
+    
+          
+
+    
+    @warnings.deprecated("Este método está fora de uso, e será deletado brevemente. Use soft_delete ou hard_delete")
     def delete_by_id(self, user_id: uuid.UUID) -> bool:
         """Marca para exclusão o usuário localizado pelo ID.
 
@@ -86,7 +118,8 @@ class UserRepository:
         self.session.delete(retrived_user)
         self.session.flush()
         return True
-
+    
+    @warnings.deprecated("Este método está fora de uso, e será deletado brevemente. Use soft_delete ou hard_delete")
     def delete_by_username(self, username: str) -> bool:
         """Marca para exclusão o usuário localizado pelo username.
 
@@ -109,7 +142,7 @@ class UserRepository:
         self.session.delete(retrived_user)
         self.session.flush()
         return True
-
+    @warnings.deprecated("Este método está fora de uso, e será deletado brevemente. Use soft_delete ou hard_delete")
     def delete_by_email(self, email: str) -> bool:
         """Marca para exclusão o usuário localizado pelo e-mail.
 
