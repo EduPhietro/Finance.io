@@ -1,8 +1,9 @@
 
 const API_URL = 'http://localhost:8000/api/v1'
-//Conexao API Cadastro
+
+// Cadastro de usuário
 export async function cadastrarUsuario(dados) {
-  const resposta = await fetch(`${API_URL}/user`, {
+  const resposta = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,17 +27,20 @@ export async function cadastrarUsuario(dados) {
   return resultado
 }
 
-//Conexao API Login
+// Autenticação de usuário
 export async function autenticarUsuario(dados) {
-  const resposta = await fetch(`${API_URL}/user/login`, {
+  const identificador = dados.email.trim()
+
+  const corpo = identificador.includes('@')
+    ? { email: identificador, password: dados.senha }
+    : { username: identificador, password: dados.senha }
+
+  const resposta = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      email: dados.email,
-      password: dados.senha,
-    }),
+    body: JSON.stringify(corpo),
   })
 
   const resultado = await resposta.json()

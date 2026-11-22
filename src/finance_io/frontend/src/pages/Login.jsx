@@ -73,16 +73,22 @@ async function handleSubmit(event) {
   try {
     setCarregando(true)
 
-    const resultado = await autenticarUsuario(form)
+    
+      const resultado = await autenticarUsuario(form)
 
-      localStorage.setItem('financeio_token', resultado.token)
-      localStorage.setItem('financeio_token_type', resultado.type)
+      if (!resultado.access_token || !Number.isFinite(Number(resultado.expires_in))) {
+        throw new Error('Resposta de autenticação inválida.')
+      }
 
-      const expiracao = Math.floor(Date.now() / 1000) + resultado.exp
+      const expiracao =
+        Math.floor(Date.now() / 1000) + Number(resultado.expires_in)
 
-      localStorage.setItem('financeio_token_exp', expiracao)
+      localStorage.setItem('financeio_token', resultado.access_token)
+      localStorage.setItem('financeio_token_type', resultado.token_type)
+      localStorage.setItem('financeio_token_exp', String(expiracao))
 
-    onNavigate('dashboard')
+      onNavigate('dashboard')
+
 
   } catch (error) {
     setMensagem(error.message || 'E-mail ou senha incorretos.')
