@@ -31,7 +31,7 @@ O projeto possui finalidade acadêmica e deve priorizar:
 
 O ator principal é o **usuário**, proprietário das contas, cartões, categorias e movimentações cadastradas.
 
-No MVP, não estão previstos perfis administrativos, contas compartilhadas, organizações, famílias ou permissões entre múltiplos usuários. Mesmo que a autenticação ainda não esteja implementada, o domínio deve evitar misturar dados pertencentes a usuários diferentes.
+No MVP, não estão previstos perfis administrativos, contas compartilhadas, organizações, famílias ou permissões entre múltiplos usuários. A autenticação por JWT já existe, mas as rotas ainda não exigem o token. Mesmo assim, o domínio deve evitar misturar dados pertencentes a usuários diferentes.
 
 ## 4. Escopo funcional do MVP
 
@@ -311,21 +311,25 @@ Boletos e faturas podem ser avaliados em versões futuras. No MVP, despesas agen
 
 ## 10. Estado técnico atual
 
-Atualmente, o projeto está estruturando as camadas de dados e interface:
+Atualmente, o projeto concluiu a estrutura de dados e iniciou a API:
 
 - linguagem: Python;
 - versão mínima declarada: Python 3.14;
 - gerenciamento de projeto e dependências: `uv` e `pyproject.toml`;
 - pacote da aplicação: `src/finance_io`;
-- ponto de entrada provisório: `src/finance_io/main.py`;
-- framework de API declarado: FastAPI, ainda sem aplicação ou endpoints configurados;
+- API: FastAPI em `src/finance_io/backend/main.py`, com rotas versionadas sob `/api/v1`;
+- organização do backend em camadas: `routes` (HTTP), `schemas` (Pydantic), `service` (regras de negócio, `commit` e `rollback`), `repository` (consultas e `flush`) e `exceptions` (erros de domínio convertidos em HTTP pelas rotas);
+- rotas disponíveis: cadastro de usuário (`POST /api/v1/user`) e login por e-mail ou username (`POST /api/v1/auth/login`);
+- autenticação: senhas com hash bcrypt; token JWT `HS256` assinado com `JWT_SECRET_TOKEN`, válido por 12 horas, com as claims `sub`, `iat`, `exp` e `jti`. Nenhuma rota valida o token ainda;
+- exclusão de usuário: lógica, por `deleted_at`; as consultas ignoram usuários excluídos. Não há rota HTTP para exclusão;
 - persistência: PostgreSQL, Psycopg, SQLAlchemy e Alembic;
-- modelos e migrações: usuários, endereços, categorias, contas bancárias, cartões e planos de parcelamento;
+- modelos e migrações: usuários, endereços, categorias (com carga inicial), contas bancárias, cartões, planos de parcelamento, regras de recorrência e transações;
 - cache preparado: Redis, ainda sem uso pela aplicação;
-- infraestrutura: Docker Compose para PostgreSQL e Redis, com os arquivos da imagem Redis centralizados em `docker/redis`;
+- infraestrutura: Docker Compose para PostgreSQL, Redis e API; o contêiner da API executa `alembic upgrade head` antes de iniciar o Uvicorn;
+- testes manuais da API: coleção Bruno em `bruno/`; ainda não há testes automatizados;
 - interface: React, Vite e Tailwind CSS, com telas de login e cadastro e validação local, ainda sem integração com o backend.
 
-O `src/finance_io/main.py` atual é apenas um ponto de entrada de exemplo e não inicia um servidor HTTP. A persistência e a interface já possuem implementação inicial, mas autenticação, endpoints, movimentações financeiras e integração entre as camadas ainda não estão disponíveis.
+Ainda não estão disponíveis: rotas protegidas por token, rotas de contas, cartões, categorias e transações, regras de recorrência, parcelamento e limite implementadas em código, e a integração entre frontend e API.
 
 ## 11. Orientações para evolução e implementação
 
@@ -338,7 +342,7 @@ Antes de implementar uma funcionalidade:
 5. evitar dependências ou abstrações desnecessárias para o estágio atual;
 6. atualizar a documentação quando uma decisão de produto ou arquitetura for tomada.
 
-Decisões ainda abertas, como estratégia de autenticação e organização da API, não devem ser presumidas silenciosamente. Quando uma implementação depender delas, a decisão deve ser registrada antes ou junto da mudança.
+A estratégia de autenticação (JWT `HS256` emitido no login) e a organização da API (rotas versionadas em `/api/v1` e camadas route/service/repository) já foram definidas. Decisões ainda abertas, como revogação de tokens ou uso do Redis, não devem ser presumidas silenciosamente. Quando uma implementação depender delas, a decisão deve ser registrada antes ou junto da mudança.
 
 ## 12. Critério geral de conclusão do MVP
 

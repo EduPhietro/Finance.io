@@ -28,14 +28,18 @@ explicitamente aos requisitos.
 
 ## Estado atual
 
-O projeto está na fase de estruturação das camadas de dados e interface:
+O projeto concluiu a estrutura de dados e iniciou a API:
 
-- PostgreSQL e Redis possuem ambiente local via Docker Compose;
-- SQLAlchemy e Alembic cobrem usuários, endereços, categorias, contas, cartões
-  e planos de parcelamento;
+- PostgreSQL, Redis e a API possuem ambiente local via Docker Compose, com
+  migrações aplicadas automaticamente na inicialização da API;
+- SQLAlchemy e Alembic cobrem usuários, endereços, categorias (com carga
+  inicial), contas, cartões, planos de parcelamento, regras de recorrência e
+  transações;
+- a API FastAPI expõe cadastro (`POST /api/v1/user`) e login com JWT
+  (`POST /api/v1/auth/login`);
 - o frontend possui telas de login e cadastro com validação local;
-- a API FastAPI, a autenticação e a integração frontend/backend ainda não foram
-  implementadas.
+- ainda não há rotas protegidas por token, rotas financeiras nem integração
+  entre frontend e backend.
 
 Ao atualizar uma funcionalidade, mantenha sincronizados o requisito aplicável,
 o resumo de estado no `README.md` e, quando necessário, a documentação do
