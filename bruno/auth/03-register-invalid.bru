@@ -1,0 +1,33 @@
+meta {
+  name: Cadastrar com dados inválidos (422)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "full_name": "A",
+    "username": "nome com espaço",
+    "email": "email-invalido",
+    "password": "fraca"
+  }
+}
+
+tests {
+  test("retorna HTTP 422", function () {
+    expect(res.getStatus()).to.equal(422);
+  });
+
+  test("detail é texto e errors lista os campos", function () {
+    const body = res.getBody();
+    expect(body.detail).to.be.a("string");
+    const fields = body.errors.map((e) => e.field);
+    expect(fields).to.include.members(["full_name", "username", "email", "password"]);
+  });
+}

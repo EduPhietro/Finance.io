@@ -1,5 +1,7 @@
 """Schema de entrada para cadastro de usuários."""
 
+import re
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
@@ -37,11 +39,7 @@ class RegisterUserSchema(BaseModel):
 
     email: EmailStr
 
-    password: str = Field(
-        min_length=8,
-        max_length=72,
-        pattern=r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^\s\w]).{8,72}$",
-    )
+    password: str = Field(min_length=8, max_length=72, examples=["Senha@123"])
 
     @field_validator("full_name", "username", mode="before")
     @classmethod
@@ -73,8 +71,8 @@ class RegisterUserSchema(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def validate_password_length(cls, value: str) -> str:
-        """Garante o limite de 72 bytes aceito pelo bcrypt.
+    def validate_password(cls, value: str) -> str:
+        """Garante a força da senha e o limite de 72 bytes aceito pelo bcrypt.
 
         Args:
             value: Senha já validada pelas demais regras do campo.
@@ -83,9 +81,23 @@ class RegisterUserSchema(BaseModel):
             A senha sem modificações quando o tamanho é aceito.
 
         Raises:
-            ValueError: Se a representação UTF-8 ultrapassar 72 bytes.
+            ValueError: Se a representação UTF-8 ultrapassar 72 bytes ou se
+                faltar letra maiúscula, minúscula, número ou símbolo.
         """
 
         if len(value.encode("utf-8")) > 72:
             raise ValueError("A senha não pode ser maior que 72 bytes")
+
+        missing = [
+            requirement
+            for requirement, satisfied in (
+                ("uma letra maiúscula", re.search(r"[A-Z]", value)),
+                ("uma letra minúscula", re.search(r"[a-z]", value)),
+                ("um número", re.search(r"\d", value)),
+                ("um símbolo", re.search(r"[^\s\w]", value)),
+            )
+            if not satisfied
+        ]
+        if missing:
+            raise ValueError("A senha precisa ter " + ", ".join(missing))
         return value

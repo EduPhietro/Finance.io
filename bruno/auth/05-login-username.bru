@@ -1,0 +1,24 @@
+meta {
+  name: Login com username
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "{{test_username}}",
+    "password": "Senha@123"
+  }
+}
+
+tests {
+  test("retorna HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

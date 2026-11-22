@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from finance_io.backend.core.exception_handlers import register_exception_handlers
 from finance_io.backend.routes import app_router
 
 app = FastAPI(
@@ -23,3 +24,5 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+register_exception_handlers(app)

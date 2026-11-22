@@ -1,0 +1,35 @@
+meta {
+  name: Login com e-mail
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{test_email}}",
+    "password": "Senha@123"
+  }
+}
+
+script:post-response {
+  bru.setVar("access_token", res.getBody().access_token);
+}
+
+tests {
+  test("retorna HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("retorna o token no formato OAuth2", function () {
+    const body = res.getBody();
+    expect(body.access_token).to.be.a("string");
+    expect(body.token_type).to.equal("bearer");
+    expect(body.expires_in).to.equal(43200);
+  });
+}
