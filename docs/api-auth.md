@@ -1,6 +1,6 @@
 # Contrato da API de autenticação
 
-Definido na task #81 (story #80). Base de todas as rotas: `/api/v1`.
+Definido na task #81 e completado na #82 (story #80). Base de todas as rotas: `/api/v1`.
 
 ## Rotas
 
@@ -8,8 +8,8 @@ Definido na task #81 (story #80). Base de todas as rotas: `/api/v1`.
 |---|---|---|---|---|
 | POST | `/auth/register` | `full_name`, `username`, `email`, `password` | 201 — dados públicos do usuário | 409, 422 |
 | POST | `/auth/login` | `email` **ou** `username`, e `password` | 200 — token de acesso | 401, 422 |
-| POST | `/auth/logout` | — (Bearer) | 204 | 401 — *implementado na #82* |
-| GET | `/auth/me` | — (Bearer) | 200 — dados públicos do usuário | 401 — *implementado na #82* |
+| POST | `/auth/logout` | — (Bearer) | 204 | 401, 503 |
+| GET | `/auth/me` | — (Bearer) | 200 — dados públicos do usuário | 401 |
 
 ### Cadastro — `POST /auth/register`
 
@@ -80,6 +80,60 @@ Usuário inexistente e senha incorreta recebem **exatamente a mesma resposta**
 `WWW-Authenticate: Bearer`) e levam o mesmo tempo para responder, para não
 revelar quais contas existem.
 
+## Rotas privadas
+
+Envie o token recebido no login em toda rota privada:
+
+```
+Authorization: Bearer <access_token>
+```
+
+O token é recusado com `401`, `{"detail": "Token de acesso inválido ou expirado"}`
+e `WWW-Authenticate: Bearer` quando:
+
+- o cabeçalho está ausente ou não é do tipo `Bearer`;
+- o token está malformado, foi adulterado ou expirou;
+- falta alguma claim (`sub`, `iat`, `exp`, `jti`);
+- o token foi revogado por logout;
+- o usuário não existe mais ou foi excluído (soft delete).
+
+A mensagem é sempre a mesma, para não revelar o motivo exato.
+
+No backend, uma rota fica privada ao declarar o usuário atual:
+
+```python
+from finance_io.backend.routes.dependencies import CurrentUser
+
+@router.get("/accounts")
+def list_accounts(user: CurrentUser): ...
+```
+
+No `/docs`, clique em **Authorize** e cole o `access_token` para testar as rotas
+privadas.
+
+### Logout — `POST /auth/logout`
+
+Revoga **somente o token enviado**, guardando o `jti` no Redis
+(`auth:denylist:<jti>`) até o horário em que o token expiraria. Outros
+dispositivos logados com outros tokens continuam conectados.
+
+- `204`: sessão encerrada.
+- `401`: token já inválido, inclusive um token que já passou por logout.
+- `503`: Redis indisponível; o logout não foi registrado e o cliente deve
+  tentar de novo (ou apenas descartar o token localmente).
+
+### Usuário atual — `GET /auth/me`
+
+Retorna os mesmos dados públicos do cadastro (`id`, `full_name`, `username`,
+`email`, `created_at`, `updated_at`).
+
+### Redis indisponível
+
+Se o Redis cair, a API continua funcionando: a verificação de revogação é
+ignorada (com aviso no log) e apenas o logout responde `503`. Durante a falha,
+tokens que já passaram por logout voltam a ser aceitos até expirarem — no
+máximo 12 horas.
+
 ## Formato de erro
 
 Todas as respostas de erro da API seguem o mesmo formato:
@@ -105,16 +159,22 @@ JSON malformado ou login sem e-mail e sem username).
 | Status | Quando | `detail` |
 |---|---|---|
 | 401 | Credenciais inválidas | `Credenciais inválidas` |
+| 401 | Token ausente, inválido, expirado ou revogado | `Token de acesso inválido ou expirado` |
 | 409 | E-mail já cadastrado | `O email já está cadastrado` |
 | 409 | Username já cadastrado | `O username já existe` |
 | 422 | Corpo inválido | `Dados inválidos` (+ `errors`) |
 | 500 | Erro inesperado | `Erro interno do servidor` (detalhes só no log) |
+| 503 | Redis indisponível no logout | `Não foi possível encerrar a sessão agora. Tente novamente.` |
 
 ## Decisões
 
 - **Cadastro informa duplicidade.** O cadastro diz se o e-mail ou o username já
   existem, para que o usuário saiba o que corrigir. O login nunca diferencia
   usuário inexistente de senha errada.
+- **Segredo JWT forte.** A API não inicia se `JWT_SECRET_TOKEN` tiver menos de
+  32 caracteres.
+- **Erros 500 com CORS.** Erros inesperados também levam os cabeçalhos CORS,
+  para o frontend exibir a mensagem em vez de "blocked by CORS policy".
 - **Rotas síncronas.** As rotas usam `def` (e não `async def`) porque a sessão
   do SQLAlchemy é síncrona; o FastAPI as executa em um thread pool sem bloquear
   o servidor.
@@ -129,8 +189,9 @@ obsoletas no `/docs`, apenas para não quebrar o frontend da branch
 
 ## Testes manuais
 
-A coleção Bruno em `bruno/auth/` cobre cadastro (201, 409, 422) e login
-(e-mail, username e os dois casos de 401):
+A coleção Bruno em `bruno/auth/` cobre cadastro (201, 409, 422), login
+(e-mail, username e os dois casos de 401), `/auth/me` com e sem token, logout
+e o uso do token depois do logout:
 
 ```bash
 cd bruno && bru run auth --env local

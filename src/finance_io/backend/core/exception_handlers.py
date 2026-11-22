@@ -14,9 +14,12 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 from finance_io.backend.exceptions import (
     AuthenticationException,
+    SessionStoreUnavailableException,
     UserConflictException,
     UserNotFoundException,
 )
@@ -145,14 +148,39 @@ async def not_found_exception_handler(
     )
 
 
-async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Registra o erro e responde 500 sem expor detalhes internos."""
+async def session_store_unavailable_handler(
+    request: Request, exc: SessionStoreUnavailableException
+) -> JSONResponse:
+    """Responde 503 quando o Redis não está disponível."""
 
-    logger.exception("Erro não tratado em %s %s", request.method, request.url.path)
     return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=_error_body("Erro interno do servidor"),
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=_error_body(str(exc)),
     )
+
+
+class UnhandledExceptionMiddleware(BaseHTTPMiddleware):
+    """Converte exceções não tratadas em 500 no formato único de erro.
+
+    Um ``add_exception_handler(Exception, ...)`` seria executado fora do
+    ``CORSMiddleware``, e a resposta 500 sairia sem os cabeçalhos CORS: o
+    navegador mostraria "blocked by CORS policy" em vez do erro. Este
+    middleware deve ser registrado **antes** do CORS para ficar por dentro dele.
+    """
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        try:
+            return await call_next(request)
+        except Exception:
+            logger.exception(
+                "Erro não tratado em %s %s", request.method, request.url.path
+            )
+            return JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content=_error_body("Erro interno do servidor"),
+            )
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -163,4 +191,6 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(UserConflictException, conflict_exception_handler)
     app.add_exception_handler(AuthenticationException, authentication_exception_handler)
     app.add_exception_handler(UserNotFoundException, not_found_exception_handler)
-    app.add_exception_handler(Exception, unhandled_exception_handler)
+    app.add_exception_handler(
+        SessionStoreUnavailableException, session_store_unavailable_handler
+    )

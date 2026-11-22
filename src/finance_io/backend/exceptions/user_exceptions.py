@@ -57,3 +57,18 @@ class InvalidCredentialsException(AuthenticationException):
     Uma exceção única evita revelar qual credencial falhou e reduz o risco de
     enumeração de contas.
     """
+
+
+class InvalidTokenException(AuthenticationException):
+    """Indica token de acesso ausente, inválido, expirado ou revogado.
+
+    Todas essas situações usam a mesma mensagem para não revelar ao cliente o
+    motivo exato da recusa.
+    """
+
+
+class SessionStoreUnavailableException(Exception):
+    """Indica que o armazenamento de sessões (Redis) está indisponível.
+
+    Em uma rota HTTP, corresponde ao status 503.
+    """

@@ -1,0 +1,22 @@
+meta {
+  name: Usuário autenticado após logout (401)
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{base_url}}/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+tests {
+  test("o token revogado é recusado", function () {
+    expect(res.getStatus()).to.equal(401);
+    expect(res.getBody().detail).to.equal("Token de acesso inválido ou expirado");
+  });
+}

@@ -1,6 +1,7 @@
 """Funções de segurança: hash de senhas e emissão de tokens de acesso."""
 
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -84,3 +85,48 @@ def create_access_token(subject: uuid.UUID) -> tuple[str, int]:
     )
 
     return token, int(ACCESS_TOKEN_EXPIRATION.total_seconds())
+
+
+@dataclass(frozen=True)
+class AccessTokenClaims:
+    """Claims validadas de um token de acesso."""
+
+    subject: uuid.UUID
+    token_id: str
+    expires_at: datetime
+
+
+def decode_access_token(token: str) -> AccessTokenClaims:
+    """Valida um token de acesso e devolve suas claims.
+
+    Confere a assinatura (somente ``HS256``), a expiração e a presença de
+    ``sub``, ``iat``, ``exp`` e ``jti``.
+
+    Args:
+        token: Token recebido no cabeçalho ``Authorization: Bearer``.
+
+    Returns:
+        As claims do token.
+
+    Raises:
+        jwt.InvalidTokenError: Se o token estiver malformado, adulterado,
+            expirado, sem alguma claim obrigatória ou com ``sub`` inválido.
+    """
+
+    payload = jwt.decode(
+        token,
+        settings.jwt_secret_token.get_secret_value(),
+        algorithms=[JWT_ALGORITHM],
+        options={"require": ["sub", "iat", "exp", "jti"]},
+    )
+
+    try:
+        subject = uuid.UUID(str(payload["sub"]))
+    except ValueError as error:
+        raise jwt.InvalidTokenError("Claim sub inválida") from error
+
+    return AccessTokenClaims(
+        subject=subject,
+        token_id=str(payload["jti"]),
+        expires_at=datetime.fromtimestamp(payload["exp"], tz=timezone.utc),
+    )
