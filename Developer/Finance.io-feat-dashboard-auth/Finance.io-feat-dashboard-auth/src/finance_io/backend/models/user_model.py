@@ -1,0 +1,137 @@
+"""Model ORM de usuários."""
+
+import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+
+from sqlalchemy import UUID, DateTime, String, func, or_
+from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
+
+from finance_io.backend.database.settings import Base
+
+if TYPE_CHECKING:
+    from finance_io.backend.models.address_model import AddressModel
+    from finance_io.backend.models.cateogories_model import CategoryModel
+    from finance_io.backend.models.bank_account_model import BankAccountModel
+    from finance_io.backend.models.installment_plan_model import InstallmentPlanModel
+    from finance_io.backend.models.recurrence_rule_model import RecurrenceRuleModel
+    from finance_io.backend.models.transaction_model import TransactionModel
+
+
+class UserModel(Base):
+    """Representa a identidade persistida de um usuário.
+
+    Armazena dados de cadastro, credencial protegida por hash e timestamps de
+    auditoria. O model é a raiz dos relacionamentos com endereços, categorias,
+    contas, parcelamentos, recorrências e transações.
+
+    Notes:
+        ``username`` e ``email`` possuem restrição de unicidade. ``deleted_at``
+        permite exclusão lógica, embora os relacionamentos estejam configurados
+        para exclusão em cascata quando houver remoção física.
+    """
+
+    __tablename__ = "USERS"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        nullable=False,
+        server_default=func.uuidv7(),
+        comment="Identificador único do usuário.",
+    )
+
+    full_name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        comment="Nome completo do usuário.",
+    )
+
+    username: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        unique=True,
+        comment="Nome de usuário utilizado no login.",
+    )
+
+    email: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        unique=True,
+        comment="Endereço de e-mail do usuário.",
+    )
+
+    password_hash: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        comment="Hash da senha do usuário.",
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+        comment="Data e hora de criação do registro.",
+    )
+
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Data e hora da última atualização.",
+    )
+
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Data e hora da exclusão lógica.",
+    )
+
+    addresses: Mapped[list["AddressModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    categories: Mapped[list["CategoryModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    bank_accounts: Mapped[list["BankAccountModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    transactions: Mapped[list["TransactionModel"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+    system_categories = lambda: relationship(
+        primaryjoin=or_(
+            UserModel.id == foreign(CategoryModel.user_id),
+            CategoryModel.user_id.is_(None),
+        )
+    )

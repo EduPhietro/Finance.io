@@ -1,0 +1,5 @@
+"""Configurações centrais da aplicação."""
+
+from .config import Settings, settings, get_settings
+
+__all__ = ["Settings", "settings", "get_settings"]

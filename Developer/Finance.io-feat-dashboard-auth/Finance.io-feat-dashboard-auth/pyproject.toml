@@ -1,0 +1,21 @@
+[project]
+name = "finance-io"
+version = "0.1.0"
+description = "Aplicação acadêmica de gestão financeira pessoal"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.20.1",
+    "bcrypt>=5.0.0",
+    "fastapi[standard]>=0.162.2",
+    "psycopg[binary]>=3.3.8",
+    "pyjwt>=2.15.1",
+    "python-dotenv>=1.2.4",
+    "redis>=8.1.0",
+    "sqlalchemy>=2.1.8",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
