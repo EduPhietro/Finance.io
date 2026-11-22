@@ -1,0 +1,27 @@
+meta {
+  name: Usuário autenticado
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+tests {
+  test("retorna HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("retorna o dono do token sem dados sensíveis", function () {
+    const body = res.getBody();
+    expect(body.email).to.equal(bru.getVar("test_email"));
+    expect(body).to.not.have.property("password_hash");
+  });
+}

@@ -5,8 +5,10 @@ from functools import lru_cache
 
 from typing import Literal
 
-from pydantic import PostgresDsn, SecretStr, Field
+from pydantic import Field, PostgresDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+MIN_JWT_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -31,10 +33,28 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_user: str = Field(validation_alias="REDIS_USER")
     redis_password: SecretStr = Field(validation_alias="REDIS_PASSWORD")
-    
+
     jwt_secret_token: SecretStr = Field(validation_alias="JWT_SECRET_TOKEN")
-    
-    
+
+    @field_validator("jwt_secret_token")
+    @classmethod
+    def validate_jwt_secret_length(cls, value: SecretStr) -> SecretStr:
+        """Exige um segredo JWT com pelo menos 32 caracteres.
+
+        Um segredo curto torna viável descobrir a chave por força bruta a
+        partir de qualquer token emitido e, com ela, forjar tokens válidos.
+
+        Raises:
+            ValueError: Se o segredo tiver menos de 32 caracteres.
+        """
+
+        if len(value.get_secret_value()) < MIN_JWT_SECRET_LENGTH:
+            raise ValueError(
+                f"JWT_SECRET_TOKEN deve ter pelo menos {MIN_JWT_SECRET_LENGTH} "
+                "caracteres. Gere um com: "
+                'python -c "import secrets; print(secrets.token_urlsafe(48))"'
+            )
+        return value
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"

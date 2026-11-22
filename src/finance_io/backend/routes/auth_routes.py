@@ -1,11 +1,16 @@
-"""Rotas HTTP de cadastro e autenticação (contrato da task #81)."""
+"""Rotas HTTP de autenticação: cadastro, login, logout e usuário atual.
 
-from typing import Annotated
+Contrato definido na task #81 e documentado em ``docs/api-auth.md``.
+"""
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Response, status
 
-from finance_io.backend.database import get_db
+from finance_io.backend.routes.dependencies import (
+    CurrentUser,
+    DatabaseSession,
+    RevocationService,
+    TokenClaims,
+)
 from finance_io.backend.schemas import (
     AccessTokenSchema,
     AuthenticateUserSchema,
@@ -14,8 +19,6 @@ from finance_io.backend.schemas import (
     RegisterUserSchema,
 )
 from finance_io.backend.service import UserService
-
-DatabaseSession = Annotated[Session, Depends(get_db)]
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
@@ -64,3 +67,43 @@ def login(data: AuthenticateUserSchema, session: DatabaseSession) -> AccessToken
     service = UserService(session)
     user = service.authenticate(data)
     return service.gen_access_token(user)
+
+
+UNAUTHORIZED = {
+    "model": ErrorSchema,
+    "description": "Token ausente, inválido, expirado ou revogado",
+}
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Encerra a sessão revogando o token atual",
+    responses={
+        401: UNAUTHORIZED,
+        503: {"model": ErrorSchema, "description": "Redis indisponível"},
+    },
+)
+def logout(
+    user: CurrentUser, claims: TokenClaims, revocation: RevocationService
+) -> Response:
+    """Revoga o token enviado até a data em que ele expiraria.
+
+    Depois do logout, o mesmo token passa a receber 401 em qualquer rota
+    privada, inclusive em um novo logout. Outros tokens do mesmo usuário
+    (outros dispositivos) continuam válidos.
+    """
+
+    revocation.revoke(claims)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/me",
+    summary="Retorna o usuário autenticado",
+    responses={401: UNAUTHORIZED},
+)
+def me(user: CurrentUser) -> RegisterUserResponseSchema:
+    """Retorna os dados públicos do dono do token."""
+
+    return RegisterUserResponseSchema.model_validate(user)
