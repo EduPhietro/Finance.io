@@ -75,9 +75,12 @@ async function handleSubmit(event) {
 
     const resultado = await autenticarUsuario(form)
 
-    localStorage.setItem('financeio_token', resultado.token)
-    localStorage.setItem('financeio_token_type', resultado.type)
-    localStorage.setItem('financeio_token_exp', resultado.exp)
+      localStorage.setItem('financeio_token', resultado.token)
+      localStorage.setItem('financeio_token_type', resultado.type)
+
+      const expiracao = Math.floor(Date.now() / 1000) + resultado.exp
+
+      localStorage.setItem('financeio_token_exp', expiracao)
 
     onNavigate('dashboard')
 
@@ -219,15 +222,16 @@ async function handleSubmit(event) {
             </div>
 
             {/* Botão */}
-            <button
-              type="submit"
-              className="w-full bg-[#008A68] hover:bg-[#075640] text-white font-semibold py-3.5 rounded-lg transition"
-            >
-              Entrar
+              <button
+                type="submit"
+                disabled={carregando}
+                className="w-full bg-[#008A68] hover:bg-[#075640] disabled:opacity-60 text-white font-semibold py-3.5 rounded-lg transition"
+              >
+                {carregando ? 'Entrando...' : 'Entrar'}
             </button>
 
             {mensagem && (
-            <p className="text-green-700 text-sm text-center">
+            <p className="text-red-600 text-sm text-center">
               {mensagem}
             </p>
           )}

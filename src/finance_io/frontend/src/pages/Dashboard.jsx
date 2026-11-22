@@ -1,5 +1,5 @@
 
-import Sidebar from '../components/sidebar'
+import Sidebar from '../components/Sidebar'
 import {
   Wallet,
   TrendingUp,
@@ -7,12 +7,12 @@ import {
   ArrowUpRight
 } from 'lucide-react'
 
-function Dashboard({ onNavigate }) {
+function Dashboard({ onNavigate, onLogout }) {
   return (
     <div className="min-h-screen bg-[#F0FAF5] flex">
 
       {/* Menu lateral */}
-      <Sidebar />
+      <Sidebar onNavigate={onNavigate} onLogout={onLogout} />
 
       {/* Conteúdo principal */}
       <main className="flex-1 p-8">

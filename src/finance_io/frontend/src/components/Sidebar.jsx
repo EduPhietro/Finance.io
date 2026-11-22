@@ -10,7 +10,7 @@ import {
   LogOut
 } from 'lucide-react'
 
-function Sidebar({ onNavigate }) {
+function Sidebar({ onNavigate, onLogout }) {
   const itens = [
     { nome: 'Dashboard', icone: LayoutDashboard },
     { nome: 'Transações', icone: ArrowLeftRight },
@@ -49,8 +49,8 @@ function Sidebar({ onNavigate }) {
           Configurações
         </button>
 
-        <button
-          onClick={() => onNavigate('login')}
+         <button
+          onClick={onLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-green-100 hover:bg-[#008A68] transition"
         >
           <LogOut size={19} />
