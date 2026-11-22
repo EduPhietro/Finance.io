@@ -1,10 +1,10 @@
 """Regras de negócio relacionadas a usuários."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+
+from psycopg.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-import bcrypt
-import jwt
 
 from finance_io.backend.repository import UserRepository
 from finance_io.backend.exceptions import (
@@ -17,14 +17,17 @@ from finance_io.backend.schemas import (
     RegisterUserSchema,
     RegisterUserResponseSchema,
     AuthenticateUserSchema,
-    JWTTokenSchema,
+    AccessTokenSchema,
     AuthenticatedUserSchema,
 )
+from finance_io.backend.core.security import (
+    create_access_token,
+    hash_password,
+    verify_password,
+)
 
-from finance_io.backend.core import settings
-
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION = timedelta(hours=12)
+EMAIL_ALREADY_EXISTS = "O email já está cadastrado"
+USERNAME_ALREADY_EXISTS = "O username já existe"
 
 
 class UserService:
@@ -52,7 +55,7 @@ class UserService:
 
         O método consulta duplicidades, gera o hash bcrypt, solicita a inserção
         ao repository e executa ``commit``. Em falhas de persistência, executa
-        ``rollback`` antes de propagar um erro genérico.
+        ``rollback`` antes de propagar o erro.
 
         Args:
             data: Dados de cadastro previamente validados pelo Pydantic.
@@ -61,32 +64,40 @@ class UserService:
             Schema com os dados públicos do usuário criado.
 
         Raises:
-            EmailAlreadyExistsException: Se o e-mail já estiver cadastrado.
+            EmailAlreadyExistsException: Se o e-mail já estiver cadastrado,
+                inclusive quando a duplicidade só é detectada pelo banco.
             UsernameAlreadyExistsException: Se o username já estiver em uso.
-            Exception: Se o hash ou a persistência do usuário falhar.
+            sqlalchemy.exc.SQLAlchemyError: Se a persistência falhar por outro
+                motivo; a transação é revertida antes de propagar o erro.
         """
 
         if self.repository.find_by_email(str(data.email)) is not None:
-            raise EmailAlreadyExistsException("O email já está cadastrado")
+            raise EmailAlreadyExistsException(EMAIL_ALREADY_EXISTS)
 
         if self.repository.find_by_username(data.username) is not None:
-            raise UsernameAlreadyExistsException("O username já existe")
+            raise UsernameAlreadyExistsException(USERNAME_ALREADY_EXISTS)
 
         try:
-            password_hash = bcrypt.hashpw(
-                data.password.encode("utf-8"), bcrypt.gensalt()
-            )
             user = self.repository.insert(
                 full_name=data.full_name,
                 username=data.username,
                 email=data.email,
-                password_hash=password_hash.decode("utf-8"),
+                password_hash=hash_password(data.password),
             )
             self.session.commit()
             self.session.refresh(user)
+        except IntegrityError as error:
+            # Outra requisição pode ter cadastrado o mesmo e-mail ou username
+            # entre a verificação acima e o INSERT. A restrição de unicidade do
+            # banco é a garantia final e é convertida no mesmo erro de domínio.
+            self.session.rollback()
+            conflict = self._conflict_from_integrity_error(error)
+            if conflict is None:
+                raise
+            raise conflict from error
         except Exception:
             self.session.rollback()
-            raise Exception("Não foi possível criar o usuário")
+            raise
 
         return RegisterUserResponseSchema(
             id=user.id,
@@ -130,7 +141,9 @@ class UserService:
         """Verifica as credenciais de um usuário.
 
         O usuário é localizado pelo e-mail, quando informado, ou pelo username.
-        A senha recebida é comparada ao hash armazenado com ``bcrypt.checkpw``.
+        A senha recebida é comparada ao hash armazenado com bcrypt. Quando o
+        usuário não existe, a comparação é feita com um hash fictício para que
+        o tempo de resposta não revele quais contas estão cadastradas.
 
         Args:
             data: Identificador (e-mail ou username) e senha recebidos no login.
@@ -151,9 +164,10 @@ class UserService:
         else:
             user = None
 
-        if user is None or not bcrypt.checkpw(
-            data.password.encode("utf-8"), user.password_hash.encode("utf-8")
-        ):
+        # verify_password roda mesmo sem usuário (hash fictício): não inverter
+        # a ordem desta condição, ou o atalho do "or" volta a vazar o tempo.
+        password_hash = user.password_hash if user is not None else None
+        if not verify_password(data.password, password_hash) or user is None:
             raise InvalidCredentialsException("Credenciais inválidas")
 
         return AuthenticatedUserSchema(
@@ -165,37 +179,40 @@ class UserService:
             updated_at=user.updated_at,
         )
 
-    def gen_jwt_token(self, data: AuthenticatedUserSchema) -> JWTTokenSchema:
-        """Gera o token de acesso JWT de um usuário autenticado.
-
-        O token é assinado com ``HS256`` usando ``settings.jwt_secret_token`` e
-        expira 12 horas após a emissão. O payload contém apenas as claims
-        registradas ``sub`` (id do usuário), ``iat`` (emissão), ``exp``
-        (expiração) e ``jti`` (identificador único do token).
+    def gen_access_token(self, data: AuthenticatedUserSchema) -> AccessTokenSchema:
+        """Gera o token de acesso de um usuário autenticado.
 
         Args:
             data: Dados públicos do usuário retornados por :meth:`authenticate`.
 
         Returns:
-            Schema com o token JWT assinado.
-
-        Notes:
-            O payload é apenas assinado, não criptografado. Dados sensíveis
-            nunca devem ser incluídos nele.
+            Token no formato OAuth2 (``access_token``, ``token_type`` e
+            ``expires_in``). Detalhes de assinatura e claims ficam em
+            :func:`finance_io.backend.core.security.create_access_token`.
         """
 
-        issued_at = datetime.now(timezone.utc)
-        payload = {
-            "sub": str(data.id),
-            "iat": issued_at,
-            "exp": issued_at + JWT_EXPIRATION,
-            "jti": str(uuid.uuid4()),
-        }
+        token, expires_in = create_access_token(data.id)
+        return AccessTokenSchema(access_token=token, expires_in=expires_in)
 
-        token = jwt.encode(
-            payload,
-            settings.jwt_secret_token.get_secret_value(),
-            algorithm=JWT_ALGORITHM,
-        )
+    @staticmethod
+    def _conflict_from_integrity_error(
+        error: IntegrityError,
+    ) -> EmailAlreadyExistsException | UsernameAlreadyExistsException | None:
+        """Converte a violação de unicidade de ``USERS`` no erro de domínio.
 
-        return JWTTokenSchema(token=token, exp=int(JWT_EXPIRATION.seconds), type="Bearer")
+        Args:
+            error: Erro levantado pelo SQLAlchemy no ``commit``.
+
+        Returns:
+            A exceção de conflito correspondente ou ``None`` quando a falha
+            não for de unicidade de e-mail ou username.
+        """
+
+        original = error.orig
+        if isinstance(original, UniqueViolation):
+            constraint = original.diag.constraint_name or ""
+            if "email" in constraint:
+                return EmailAlreadyExistsException(EMAIL_ALREADY_EXISTS)
+            if "username" in constraint:
+                return UsernameAlreadyExistsException(USERNAME_ALREADY_EXISTS)
+        return None

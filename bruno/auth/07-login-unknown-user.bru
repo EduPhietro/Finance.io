@@ -1,0 +1,32 @@
+meta {
+  name: Login com usuário inexistente (401)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "inexistente_{{test_suffix}}",
+    "password": "Errada@123"
+  }
+}
+
+tests {
+  test("retorna HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+
+  test("usa a mesma mensagem para senha errada e usuário inexistente", function () {
+    expect(res.getBody()).to.deep.equal({ detail: "Credenciais inválidas" });
+  });
+
+  test("envia o cabeçalho WWW-Authenticate", function () {
+    expect(res.getHeader("www-authenticate")).to.equal("Bearer");
+  });
+}

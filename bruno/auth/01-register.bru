@@ -1,0 +1,42 @@
+meta {
+  name: Cadastrar usuário
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "full_name": "Usuário de Teste",
+    "username": "usuario_{{test_suffix}}",
+    "email": "usuario_{{test_suffix}}@example.com",
+    "password": "Senha@123"
+  }
+}
+
+script:pre-request {
+  bru.setVar("test_suffix", Date.now().toString());
+}
+
+script:post-response {
+  bru.setVar("test_username", res.getBody().username);
+  bru.setVar("test_email", res.getBody().email);
+}
+
+tests {
+  test("retorna HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("retorna apenas dados públicos", function () {
+    const body = res.getBody();
+    expect(body).to.include.keys("id", "full_name", "username", "email", "created_at");
+    expect(body).to.not.have.property("password");
+    expect(body).to.not.have.property("password_hash");
+  });
+}
