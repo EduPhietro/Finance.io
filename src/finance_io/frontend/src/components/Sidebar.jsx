@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 const itens = [
-  { nome: 'Dashboard', caminho: '/', icone: LayoutDashboard },
+  { nome: 'Dashboard', caminho: '/dashboard', icone: LayoutDashboard },
   { nome: 'Receitas', caminho: '/receitas', icone: ArrowUpCircle },
   { nome: 'Despesas', caminho: '/despesas', icone: ArrowDownCircle },
   { nome: 'Histórico', caminho: '/historico', icone: History },
