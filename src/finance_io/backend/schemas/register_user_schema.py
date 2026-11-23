@@ -15,7 +15,19 @@ class RegisterUserSchema(BaseModel):
         pydantic.ValidationError: Se qualquer campo não atender às regras.
     """
 
-    model_config = ConfigDict(regex_engine="python-re")
+    model_config = ConfigDict(
+        regex_engine="python-re",
+        json_schema_extra={
+            "examples": [
+                {
+                    "full_name": "Maria da Silva",
+                    "username": "maria.silva",
+                    "email": "maria@example.com",
+                    "password": "Senha@123",
+                }
+            ]
+        },
+    )
 
     full_name: str = Field(
         min_length=3,
@@ -37,7 +49,7 @@ class RegisterUserSchema(BaseModel):
         ],
     )
 
-    email: EmailStr
+    email: EmailStr = Field(examples=["maria@example.com"])
 
     password: str = Field(min_length=8, max_length=72, examples=["Senha@123"])
 

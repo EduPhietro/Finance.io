@@ -11,18 +11,23 @@ from finance_io.backend.routes.dependencies import (
     RevocationService,
     TokenClaims,
 )
+from finance_io.backend.routes.responses import (
+    CONFLICT_RESPONSE,
+    INVALID_CREDENTIALS_RESPONSE,
+    INVALID_TOKEN_RESPONSE,
+    LOGIN_VALIDATION_RESPONSE,
+    REGISTER_VALIDATION_RESPONSE,
+    SESSION_STORE_UNAVAILABLE_RESPONSE,
+)
 from finance_io.backend.schemas import (
     AccessTokenSchema,
     AuthenticateUserSchema,
-    ErrorSchema,
     RegisterUserResponseSchema,
     RegisterUserSchema,
 )
 from finance_io.backend.service import UserService
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
-
-VALIDATION_ERROR = {"model": ErrorSchema, "description": "Dados inválidos"}
 
 
 # As rotas são síncronas ("def") porque a sessão do SQLAlchemy é síncrona: o
@@ -32,8 +37,8 @@ VALIDATION_ERROR = {"model": ErrorSchema, "description": "Dados inválidos"}
     status_code=status.HTTP_201_CREATED,
     summary="Cadastra um novo usuário",
     responses={
-        409: {"model": ErrorSchema, "description": "E-mail ou username já cadastrado"},
-        422: VALIDATION_ERROR,
+        409: CONFLICT_RESPONSE,
+        422: REGISTER_VALIDATION_RESPONSE,
     },
 )
 def register(
@@ -53,8 +58,8 @@ def register(
     status_code=status.HTTP_200_OK,
     summary="Autentica um usuário e emite o token de acesso",
     responses={
-        401: {"model": ErrorSchema, "description": "Credenciais inválidas"},
-        422: VALIDATION_ERROR,
+        401: INVALID_CREDENTIALS_RESPONSE,
+        422: LOGIN_VALIDATION_RESPONSE,
     },
 )
 def login(data: AuthenticateUserSchema, session: DatabaseSession) -> AccessTokenSchema:
@@ -69,19 +74,13 @@ def login(data: AuthenticateUserSchema, session: DatabaseSession) -> AccessToken
     return service.gen_access_token(user)
 
 
-UNAUTHORIZED = {
-    "model": ErrorSchema,
-    "description": "Token ausente, inválido, expirado ou revogado",
-}
-
-
 @router.post(
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Encerra a sessão revogando o token atual",
     responses={
-        401: UNAUTHORIZED,
-        503: {"model": ErrorSchema, "description": "Redis indisponível"},
+        401: INVALID_TOKEN_RESPONSE,
+        503: SESSION_STORE_UNAVAILABLE_RESPONSE,
     },
 )
 def logout(
@@ -101,7 +100,7 @@ def logout(
 @router.get(
     "/me",
     summary="Retorna o usuário autenticado",
-    responses={401: UNAUTHORIZED},
+    responses={401: INVALID_TOKEN_RESPONSE},
 )
 def me(user: CurrentUser) -> RegisterUserResponseSchema:
     """Retorna os dados públicos do dono do token."""
