@@ -14,6 +14,7 @@ import NotFound from './pages/NotFound'
 import Agenda from './pages/Agenda'
 import Resources from './pages/Resources'
 import TransactionsPage from './components/transactions/TransactionsPage'
+import LandingPage from './pages/LandingPage'
 
 // Verifica se a sessão ainda não expirou
 function tokenValido() {
@@ -51,14 +52,14 @@ function App() {
     const rotas = {
       login: '/login',
       cadastro: '/cadastro',
-      dashboard: '/',
+      dashboard: '/dashboard',
     }
 
     if (tela === 'dashboard') {
       const destino = location.state?.from
       navigate(destino
         ? `${destino.pathname}${destino.search || ''}`
-        : '/', { replace: true })
+        : '/dashboard', { replace: true })
       return
     }
 
@@ -69,11 +70,12 @@ function App() {
     <Routes>
 
       {/* Páginas públicas */}
+      <Route path="/" element={<LandingPage />} />
       <Route
         path="/login"
         element={
           tokenValido()
-            ? <Navigate to="/" replace />
+            ? <Navigate to="/dashboard" replace />
             : <Login onNavigate={handleNavigate} />
         }
       />
@@ -91,7 +93,7 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
 
         <Route path="/receitas" element={<TransactionsPage key="income" mode="income" />} />
         <Route path="/despesas" element={<TransactionsPage key="expense" mode="expense" />} />
