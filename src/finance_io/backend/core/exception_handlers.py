@@ -19,6 +19,10 @@ from starlette.responses import Response
 
 from finance_io.backend.exceptions import (
     AuthenticationException,
+    BusinessRuleException,
+    ForbiddenOperationException,
+    ResourceConflictException,
+    ResourceNotFoundException,
     SessionStoreUnavailableException,
     UserConflictException,
     UserNotFoundException,
@@ -33,6 +37,8 @@ AUTHENTICATE_HEADER = {"WWW-Authenticate": "Bearer"}
 _PATTERN_MESSAGES = {
     "full_name": "O nome deve conter apenas letras, espaços, apóstrofos ou hífens",
     "username": "O username deve conter apenas letras, números, ponto ou sublinhado",
+    "identification_color": "A cor deve estar no formato hexadecimal #RRGGBB",
+    "last_four_digits": "Informe exatamente os 4 últimos dígitos do cartão",
 }
 
 _TYPE_MESSAGES = {
@@ -41,6 +47,23 @@ _TYPE_MESSAGES = {
     "json_invalid": "JSON inválido",
     "model_attributes_type": "O corpo da requisição deve ser um objeto JSON",
     "dict_type": "O corpo da requisição deve ser um objeto JSON",
+    "uuid_parsing": "Identificador inválido",
+    "uuid_type": "Identificador inválido",
+    "decimal_parsing": "Informe um valor numérico",
+    "decimal_type": "Informe um valor numérico",
+    "int_parsing": "Informe um número inteiro",
+    "int_type": "Informe um número inteiro",
+    "int_from_float": "Informe um número inteiro",
+    "bool_parsing": "Informe verdadeiro ou falso",
+    "bool_type": "Informe verdadeiro ou falso",
+    "date_parsing": "Data inválida (use AAAA-MM-DD)",
+    "date_from_datetime_parsing": "Data inválida (use AAAA-MM-DD)",
+    "date_from_datetime_inexact": "Informe apenas a data (AAAA-MM-DD)",
+    "date_type": "Data inválida (use AAAA-MM-DD)",
+    "datetime_parsing": "Data e hora inválidas (use AAAA-MM-DDTHH:MM:SS)",
+    "datetime_from_date_parsing": "Data e hora inválidas (use AAAA-MM-DDTHH:MM:SS)",
+    "datetime_type": "Data e hora inválidas (use AAAA-MM-DDTHH:MM:SS)",
+    "extra_forbidden": "Campo não permitido",
 }
 
 
@@ -78,6 +101,20 @@ def _translate(error: dict[str, Any], field: str | None) -> str:
         return f"Deve ter pelo menos {ctx.get('min_length')} caracteres"
     if error_type == "string_too_long":
         return f"Deve ter no máximo {ctx.get('max_length')} caracteres"
+    if error_type in {"enum", "literal_error"}:
+        return f"Valor inválido. Use um destes: {ctx.get('expected')}"
+    if error_type == "greater_than":
+        return f"Deve ser maior que {ctx.get('gt')}"
+    if error_type == "greater_than_equal":
+        return f"Deve ser maior ou igual a {ctx.get('ge')}"
+    if error_type == "less_than":
+        return f"Deve ser menor que {ctx.get('lt')}"
+    if error_type == "less_than_equal":
+        return f"Deve ser menor ou igual a {ctx.get('le')}"
+    if error_type == "decimal_max_places":
+        return f"Use no máximo {ctx.get('decimal_places')} casas decimais"
+    if error_type in {"decimal_max_digits", "decimal_whole_digits"}:
+        return "Valor acima do máximo permitido"
     if error_type == "string_pattern_mismatch":
         return _PATTERN_MESSAGES.get(field or "", "Formato inválido")
     return _TYPE_MESSAGES.get(error_type, error.get("msg", "Valor inválido"))
@@ -159,6 +196,29 @@ async def session_store_unavailable_handler(
     )
 
 
+_DOMAIN_STATUS: tuple[tuple[type[Exception], int], ...] = (
+    (ResourceNotFoundException, status.HTTP_404_NOT_FOUND),
+    (ForbiddenOperationException, status.HTTP_403_FORBIDDEN),
+    (ResourceConflictException, status.HTTP_409_CONFLICT),
+    (BusinessRuleException, status.HTTP_422_UNPROCESSABLE_CONTENT),
+)
+
+
+async def domain_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Converte as exceções de regra de negócio no status HTTP correspondente.
+
+    O corpo traz apenas ``detail``: as mensagens dos services já são
+    escritas para o usuário final e não expõem detalhes internos.
+    """
+
+    for exception_type, status_code in _DOMAIN_STATUS:
+        if isinstance(exc, exception_type):
+            return JSONResponse(status_code=status_code, content=_error_body(str(exc)))
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, content=_error_body(str(exc))
+    )
+
+
 class UnhandledExceptionMiddleware(BaseHTTPMiddleware):
     """Converte exceções não tratadas em 500 no formato único de erro.
 
@@ -194,3 +254,5 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(
         SessionStoreUnavailableException, session_store_unavailable_handler
     )
+    for exception_type, _ in _DOMAIN_STATUS:
+        app.add_exception_handler(exception_type, domain_exception_handler)

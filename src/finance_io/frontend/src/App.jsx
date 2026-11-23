@@ -1,11 +1,21 @@
-
-import { Navigate, Route, Routes, useNavigate } from 'react-router'
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate
+} from 'react-router'
 
 import Login from './pages/Login'
 import Cadastro from './pages/Cadastro'
 import Dashboard from './pages/Dashboard'
+import AppLayout from './components/layout/AppLayout'
+import NotFound from './pages/NotFound'
+import Agenda from './pages/Agenda'
+import Resources from './pages/Resources'
+import TransactionsPage from './components/transactions/TransactionsPage'
 
-// Verifica se existe uma sessão não expirada
+// Verifica se a sessão ainda não expirou
 function tokenValido() {
   const token = localStorage.getItem('financeio_token')
   const expiracao = Number(
@@ -15,10 +25,18 @@ function tokenValido() {
   return Boolean(token && expiracao > Date.now() / 1000)
 }
 
-// Impede a exibição de páginas privadas sem sessão
+// Protege as rotas privadas
 function ProtectedRoute({ children }) {
+  const location = useLocation()
+
   if (!tokenValido()) {
-    return <Navigate to="/login" replace />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location }}
+      />
+    )
   }
 
   return children
@@ -26,8 +44,9 @@ function ProtectedRoute({ children }) {
 
 function App() {
   const navigate = useNavigate()
+  const location = useLocation()
 
-  // Mantém compatibilidade com as páginas existentes
+  // Compatibilidade com Login e Cadastro existentes
   function handleNavigate(tela) {
     const rotas = {
       login: '/login',
@@ -35,19 +54,21 @@ function App() {
       dashboard: '/',
     }
 
+    if (tela === 'dashboard') {
+      const destino = location.state?.from
+      navigate(destino
+        ? `${destino.pathname}${destino.search || ''}`
+        : '/', { replace: true })
+      return
+    }
+
     navigate(rotas[tela] || '/login')
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('financeio_token')
-    localStorage.removeItem('financeio_token_type')
-    localStorage.removeItem('financeio_token_exp')
-
-    navigate('/login', { replace: true })
   }
 
   return (
     <Routes>
+
+      {/* Páginas públicas */}
       <Route
         path="/login"
         element={
@@ -62,27 +83,31 @@ function App() {
         element={<Cadastro onNavigate={handleNavigate} />}
       />
 
+      {/* Páginas autenticadas */}
       <Route
-        path="/"
         element={
           <ProtectedRoute>
-            <Dashboard
-              onNavigate={handleNavigate}
-              onLogout={handleLogout}
-            />
+            <AppLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route path="/" element={<Dashboard />} />
 
-      <Route
-        path="/dashboard"
-        element={<Navigate to="/" replace />}
-      />
+        <Route path="/receitas" element={<TransactionsPage key="income" mode="income" />} />
+        <Route path="/despesas" element={<TransactionsPage key="expense" mode="expense" />} />
+        <Route path="/historico" element={<TransactionsPage key="history" mode="history" />} />
+        <Route path="/agenda" element={<Agenda />} />
+        <Route path="/categorias" element={<Resources key="categories" type="categories" />} />
+        <Route path="/contas" element={<Resources key="accounts" type="accounts" />} />
+        <Route path="/cartoes" element={<Resources key="cards" type="cards" />} />
+        <Route path="/parcelamentos" element={<TransactionsPage key="installments" mode="installments" />} />
+        <Route path="/recorrencias" element={<TransactionsPage key="recurring" mode="recurring" />} />
+      </Route>
 
-      <Route
-        path="*"
-        element={<Navigate to="/" replace />}
-      />
+
+      {/* Página não encontrada */}
+      <Route path="*" element={<NotFound />} />
+
     </Routes>
   )
 }

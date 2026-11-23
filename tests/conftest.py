@@ -290,3 +290,19 @@ def make_token() -> Callable[..., str]:
         return jwt.encode(payload, key, algorithm=algorithm)
 
     return _make_token
+
+
+@pytest.fixture
+def other_auth_headers(client: TestClient, login: Callable[..., str]) -> dict[str, str]:
+    """Cabeçalho ``Authorization`` de um segundo usuário, para testes de isolamento."""
+
+    payload = {
+        "full_name": "Joao Pereira",
+        "username": "joao.pereira",
+        "email": "joao@example.com",
+        "password": "Senha@123",
+    }
+    response = client.post(f"{API}/auth/register", json=payload)
+    assert response.status_code == 201, response.text
+    token = login({"email": payload["email"]}, payload["password"])
+    return {"Authorization": f"Bearer {token}"}

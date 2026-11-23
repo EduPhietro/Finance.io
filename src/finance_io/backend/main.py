@@ -35,6 +35,16 @@ OPENAPI_TAGS = [
         "O login devolve o `access_token` usado no botão **Authorize**.",
     },
     {
+        "name": "Categorias",
+        "description": "Categorias do sistema (somente leitura) e categorias "
+        "personalizadas do usuário para receitas e despesas.",
+    },
+    {
+        "name": "Contas bancárias",
+        "description": "Contas do usuário, saldo atual por conta e saldo "
+        "consolidado das contas ativas.",
+    },
+    {
         "name": "Usuários (obsoleto)",
         "description": "Rotas antigas de cadastro e login, mantidas apenas por "
         "compatibilidade. Use `/auth/register` e `/auth/login`.",

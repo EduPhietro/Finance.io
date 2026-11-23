@@ -13,6 +13,8 @@ from sqlalchemy import (
     CheckConstraint,
     Boolean,
     DateTime,
+    Index,
+    text,
 )
 
 from finance_io.backend.database.settings import Base
@@ -27,9 +29,9 @@ if TYPE_CHECKING:
 class CategoryModel(Base):
     """Representa uma categoria de receita ou despesa.
 
-    Categorias com ``user_id`` nulo pertencem ao sistema; as demais são
-    personalizadas pelo usuário. Transações, recorrências e parcelamentos usam
-    a categoria para classificação.
+    Categorias com ``user_id`` nulo pertencem ao sistema e são somente leitura
+    para os usuários; as demais são personalizadas pelo usuário. Transações,
+    recorrências e parcelamentos usam a categoria para classificação.
 
     Notes:
         As constraints do banco validam tipo, nome e formato da cor. Violações
@@ -42,7 +44,7 @@ class CategoryModel(Base):
         UUID, primary_key=True, server_default=func.uuidv7()
     )
 
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     category_type: Mapped[str] = mapped_column(String(10), nullable=False)
 
@@ -50,7 +52,9 @@ class CategoryModel(Base):
         String(7), server_default="#89CFF0"
     )  # Cor azul bebê
 
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="TRUE"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
@@ -71,17 +75,17 @@ class CategoryModel(Base):
 
     installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
         back_populates="category",
-        lazy="selectin",
+        lazy="select",
     )
 
     recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
         back_populates="category",
-        lazy="selectin",
+        lazy="select",
     )
 
     transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="category",
-        lazy="selectin",
+        lazy="select",
     )
 
     __table_args__ = (
@@ -91,5 +95,17 @@ class CategoryModel(Base):
         CheckConstraint(
             "identification_color ~ '^#[0-9A-Fa-f]{6}$'",
             name="check_category_model_indetification_color_format",
+        ),
+        # O nome é único por dono (sistema ou usuário), sem diferenciar
+        # maiúsculas de minúsculas, apenas entre categorias não excluídas.
+        # NULLS NOT DISTINCT faz as categorias do sistema (user_id nulo)
+        # também serem únicas entre si.
+        Index(
+            "uq_categories_owner_name_active",
+            "user_id",
+            text("lower(name)"),
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+            postgresql_nulls_not_distinct=True,
         ),
     )

@@ -1,24 +1,46 @@
+
 import { useState } from 'react'
-import {
-  Wallet,
-  User,
-  AtSign,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff
-} from 'lucide-react'
+import { Wallet, User, AtSign, Mail, Lock } from 'lucide-react'
+
 import { cadastrarUsuario } from '../services/api'
+import Input, { PasswordInput } from '../components/ui/Input'
+import Button from '../components/ui/Button'
 
-function Cadastro({ onNavigate }) {
+const formularioInicial = {
+  nome: '',
+  username: '',
+  email: '',
+  senha: '',
+  confirmarSenha: ''
+}
 
-  function validarEmail(email) {
+function validarEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
-  function validarSenha(senha) {
+
+function validarNome(nome) {
+  const valor = nome.trim()
+
+  return (
+    valor.length >= 3 &&
+    valor.length <= 100 &&
+    /^[\p{L} '-]+$/u.test(valor)
+  )
+}
+
+function validarUsername(username) {
+  return (
+    username.length >= 3 &&
+    username.length <= 100 &&
+    /^[A-Za-z0-9._]+$/.test(username)
+  )
+}
+
+function validarSenha(senha) {
   return (
     senha.length >= 8 &&
     senha.length <= 72 &&
+    new TextEncoder().encode(senha).length <= 72 &&
     /[A-Z]/.test(senha) &&
     /[a-z]/.test(senha) &&
     /\d/.test(senha) &&
@@ -26,143 +48,125 @@ function Cadastro({ onNavigate }) {
   )
 }
 
-    const [mostrarSenha, setMostrarSenha] = useState(false)
-    const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
-    const [form, setForm] = useState({
-        nome: '',
-        username: '',
-        email: '',
-        senha: '',
-        confirmarSenha: ''
-      })
-    function handleChange(event) {
-  const { name, value } = event.target
+function Cadastro({ onNavigate }) {
+  const [form, setForm] = useState(formularioInicial)
+  const [erros, setErros] = useState({})
+  const [mensagem, setMensagem] = useState('')
+  const [sucesso, setSucesso] = useState(false)
+  const [carregando, setCarregando] = useState(false)
 
-  const novoForm = {
-    ...form,
-    [name]: value
+  function handleChange(event) {
+    const { name, value } = event.target
+
+    setForm((anterior) => ({
+      ...anterior,
+      [name]: value
+    }))
+
+    setErros((anterior) => {
+      const novosErros = { ...anterior }
+      delete novosErros[name]
+
+      if (name === 'senha') {
+        delete novosErros.confirmarSenha
+      }
+
+      return novosErros
+    })
+
+    setMensagem('')
+    setSucesso(false)
   }
 
-  setForm(novoForm)
+  async function handleSubmit(event) {
+    event.preventDefault()
 
-  const novosErros = { ...erros }
+    if (carregando) return
 
-  if (name === 'nome' && value.trim()) {
-    delete novosErros.nome
-  }
+    const novosErros = {}
 
-  if (name === 'username') {
-  if (value.length >= 3 && /^[A-Za-z0-9._]+$/.test(value)) {
-    delete novosErros.username
-  } else if (value.trim()) {
-    novosErros.username =
-      'Use pelo menos 3 caracteres, apenas letras, números, pontos ou _.'
-  }
-}
+    if (!validarNome(form.nome)) {
+      novosErros.nome =
+        'Informe um nome válido de 3 a 100 caracteres.'
+    }
 
-  if (name === 'email') {
-    if (validarEmail(value)) {
-      delete novosErros.email
-    } else if (value.trim()) {
+    if (!validarUsername(form.username)) {
+      novosErros.username =
+        'Use de 3 a 100 caracteres: letras, números, pontos ou _.'
+    }
+
+    if (!validarEmail(form.email.trim())) {
       novosErros.email = 'Digite um e-mail válido.'
     }
-  }
 
-  
-
-  if (name === 'senha') {
-  if (!value) {
-    delete novosErros.senha
-  } else if (!validarSenha(value)) {
-    novosErros.senha =
-      'Use 8 caracteres, incluindo maiúscula, minúscula, número e símbolo.'
-  } else {
-    delete novosErros.senha
-  }
-
-    if (novoForm.confirmarSenha) {
-      if (value === novoForm.confirmarSenha) {
-        delete novosErros.confirmarSenha
-      } else {
-        novosErros.confirmarSenha = 'As senhas não coincidem.'
-      }
+    if (!validarSenha(form.senha)) {
+      novosErros.senha =
+        'Use 8 a 72 caracteres, com maiúscula, minúscula, número e símbolo. Limite de 72 bytes.'
     }
-  }
 
-  if (name === 'confirmarSenha') {
-    if (value === novoForm.senha && value) {
-      delete novosErros.confirmarSenha
-    } else if (value) {
+    if (!form.confirmarSenha) {
+      novosErros.confirmarSenha = 'Confirme sua senha.'
+    } else if (form.senha !== form.confirmarSenha) {
       novosErros.confirmarSenha = 'As senhas não coincidem.'
     }
-  }
 
-  setErros(novosErros)
-  setMensagem('')
-}
+    setErros(novosErros)
+    setMensagem('')
+    setSucesso(false)
 
-async function handleSubmit(event) {
-  event.preventDefault()
-
-  const novosErros = {}
-
-  if (!form.nome.trim()) {
-    novosErros.nome = 'Informe seu nome completo.'
-  }
-
-  if (!form.username.trim()) {
-  novosErros.username = 'Escolha um nome de usuário.'
-  } else if (
-    form.username.length < 3 ||
-    form.username.length > 100 ||
-    !/^[A-Za-z0-9._]+$/.test(form.username)
-  ) {
-    novosErros.username = 'Nome de usuário inválido.'
-  }
-
-  if (!form.email.trim()) {
-    novosErros.email = 'Informe seu e-mail.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    novosErros.email = 'Digite um e-mail válido.'
-  }
-
-    if (!form.senha) {
-    novosErros.senha = 'Informe uma senha.'
-  } else if (!validarSenha(form.senha)) {
-    novosErros.senha =
-      'Use 8 caracteres, incluindo maiúscula, minúscula, número e símbolo.'
-  }
-
-  if (!form.confirmarSenha) {
-    novosErros.confirmarSenha = 'Confirme sua senha.'
-  } else if (form.senha !== form.confirmarSenha) {
-    novosErros.confirmarSenha = 'As senhas não coincidem.'
-  }
-
-  setErros(novosErros)
-  setMensagem('')
-    if (Object.keys(novosErros).length === 0) {
-      try {
-        const usuario = await cadastrarUsuario(form)
-
-        setMensagem(`Conta criada com sucesso! Bem-vindo, ${usuario.full_name}.`)
-
-        setForm({
-          nome: '',
-          username: '',
-          email: '',
-          senha: '',
-          confirmarSenha: ''
-        })
-
-      } catch (error) {
-        setMensagem(error.message)
-      }
+    if (Object.keys(novosErros).length > 0) {
+      return
     }
-}
 
-const [erros, setErros] = useState({})
-const [mensagem, setMensagem] = useState('')
+    try {
+      setCarregando(true)
+
+      const usuario = await cadastrarUsuario({
+        ...form,
+        nome: form.nome.trim(),
+        username: form.username.trim(),
+        email: form.email.trim()
+      })
+
+      setMensagem(
+        `Conta criada com sucesso! Bem-vindo, ${usuario.full_name}.`
+      )
+
+      setSucesso(true)
+      setForm(formularioInicial)
+      setErros({})
+
+    } catch (error) {
+      const campos = {
+        full_name: 'nome',
+        username: 'username',
+        email: 'email',
+        password: 'senha'
+      }
+
+      const errosApi = {}
+
+      if (Array.isArray(error.errors)) {
+        error.errors.forEach((item) => {
+          const campo = campos[item.field]
+
+          if (campo) {
+            errosApi[campo] = item.message
+          }
+        })
+      }
+
+      setErros(errosApi)
+      setMensagem(
+        error.message || 'Não foi possível criar a conta.'
+      )
+      setSucesso(false)
+
+    } finally {
+      setCarregando(false)
+    }
+  }
+
   return (
     <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
 
@@ -171,7 +175,9 @@ const [mensagem, setMensagem] = useState('')
 
         <div className="flex items-center gap-3">
           <Wallet size={25} />
-          <span className="text-xl font-bold">Finance.io</span>
+          <span className="text-xl font-bold">
+            Finance.io
+          </span>
         </div>
 
         <div className="max-w-md">
@@ -217,180 +223,100 @@ const [mensagem, setMensagem] = useState('')
             className="space-y-4"
           >
 
-            {/* Nome completo */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Nome completo
-              </label>
+            <Input
+              label="Nome completo"
+              type="text"
+              name="nome"
+              icon={User}
+              value={form.nome}
+              onChange={handleChange}
+              placeholder="Como devemos chamar você?"
+              autoComplete="name"
+              maxLength={100}
+              error={erros.nome}
+              required
+            />
 
-              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
-                  erros.nome ? 'border-red-500' : 'border-gray-200'
-                }`}>
-                <User size={18} className="text-gray-400" />
+            <Input
+              label="Nome de usuário"
+              type="text"
+              name="username"
+              icon={AtSign}
+              value={form.username}
+              onChange={handleChange}
+              placeholder="Ex: joao.silva"
+              autoComplete="username"
+              maxLength={100}
+              error={erros.username}
+              required
+            />
 
-                <input
-                type="text"
-                name="nome"
-                value={form.nome}
-                onChange={handleChange}
-                placeholder="Como devemos chamar você?"
-                className="w-full py-3.5 outline-none bg-transparent text-sm"
-              />
-              </div>
+            <Input
+              label="E-mail"
+              type="email"
+              name="email"
+              icon={Mail}
+              value={form.email}
+              onChange={handleChange}
+              placeholder="seuemail@exemplo.com"
+              autoComplete="email"
+              error={erros.email}
+              required
+            />
 
-              {erros.nome && (
-              <p className="text-red-500 text-xs mt-1">
-                {erros.nome}
-              </p>
-            )}
+            <PasswordInput
+              label="Senha"
+              name="senha"
+              icon={Lock}
+              value={form.senha}
+              onChange={handleChange}
+              placeholder="Crie uma senha"
+              autoComplete="new-password"
+              error={erros.senha}
+              required
+            />
 
-            </div>
-
-            {/* Nome de usuário */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Nome de usuário
-              </label>
-
-              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
-                erros.username ? 'border-red-500' : 'border-gray-200'
-              }`}>
-                <AtSign size={18} className="text-gray-400" />
-
-                <input
-                  type="text"
-                  name="username"
-                  value={form.username}
-                  onChange={handleChange}
-                  placeholder="Ex: joao.silva"
-                  maxLength={100}
-                  className="w-full py-3.5 outline-none bg-transparent text-sm"
-                />
-              </div>
-
-              {erros.username && (
-                <p className="text-red-500 text-xs mt-1">
-                  {erros.username}
-                </p>
-              )}
-            </div>
-
-            {/* E-mail */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                E-mail
-              </label>
-
-              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
-                erros.email ? 'border-red-500' : 'border-gray-200'
-              }`}>
-                <Mail size={18} className="text-gray-400" />
-
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="seuemail@exemplo.com"
-                  className="w-full py-3.5 outline-none bg-transparent text-sm"
-                />
-              </div>
-
-              {erros.email && (
-                <p className="text-red-500 text-xs mt-1">
-                  {erros.email}
-                </p>
-              )}
-
-            </div>
-
-            {/* Senha */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Senha
-              </label>
-
-              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
-                  erros.senha ? 'border-red-500' : 'border-gray-200'
-                }`}>
-                <Lock size={18} className="text-gray-400" />
-
-                <input
-                  type={mostrarSenha ? 'text' : 'password'}
-                  name="senha"
-                  value={form.senha}
-                  onChange={handleChange}
-                  placeholder="Crie uma senha"
-                  className="w-full py-3.5 outline-none bg-transparent text-sm"
-                />
-                <button
-                type="button"
-                onClick={() => setMostrarSenha(!mostrarSenha)}
-                className="text-gray-400 hover:text-[#008A68]"
-                aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-
-              {erros.senha && (
-                <p className="text-red-500 text-xs mt-1">
-                  {erros.senha}
-                </p>
-              )}
-
-            </div>
-
-            {/* Confirmar senha */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Confirmar senha
-              </label>
-
-              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
-                erros.confirmarSenha ? 'border-red-500' : 'border-gray-200'
-              }`}>
-                <Lock size={18} className="text-gray-400" />
-
-                <input
-              type={mostrarConfirmacao ? 'text' : 'password'}
+            <PasswordInput
+              label="Confirmar senha"
               name="confirmarSenha"
+              icon={Lock}
               value={form.confirmarSenha}
               onChange={handleChange}
               placeholder="Digite sua senha novamente"
-              className="w-full py-3.5 outline-none bg-transparent text-sm"
+              autoComplete="new-password"
+              error={erros.confirmarSenha}
+              required
             />
 
-            <button
-            type="button"
-            onClick={() => setMostrarConfirmacao(!mostrarConfirmacao)}
-            className="text-gray-400 hover:text-[#008A68]"
-            aria-label={mostrarConfirmacao ? 'Ocultar senha' : 'Mostrar senha'}
+            <Button
+              type="submit"
+              loading={carregando}
+              className="w-full py-3.5"
             >
-            {mostrarConfirmacao ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-              </div>
+              {carregando ? 'Criando conta...' : 'Criar conta'}
+            </Button>
 
-              {erros.confirmarSenha && (
-              <p className="text-red-500 text-xs mt-1">
-                {erros.confirmarSenha}
+            {mensagem && (
+              <p
+                role="status"
+                className={`text-sm text-center ${
+                  sucesso ? 'text-green-700' : 'text-red-600'
+                }`}
+              >
+                {mensagem}
               </p>
             )}
 
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-[#008A68] hover:bg-[#075640] text-white font-semibold py-3.5 rounded-lg transition"
-            >
-              Criar conta
-            </button>
-
-              {mensagem && (
-                <p className="text-green-700 text-sm text-center">
-                  {mensagem}
-                </p>
-              )}
+            {sucesso && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => onNavigate('login')}
+              >
+                Ir para o login
+              </Button>
+            )}
 
           </form>
 
@@ -406,9 +332,7 @@ const [mensagem, setMensagem] = useState('')
           </p>
 
         </div>
-
       </section>
-
     </main>
   )
 }

@@ -23,8 +23,13 @@ mesma requisição, sem consultar o banco duas vezes.
 from fastapi import APIRouter, Depends
 
 from .auth_routes import router as auth_routes
+from .bank_account_routes import router as bank_account_routes
+from .card_routes import router as card_routes
+from .category_routes import router as category_routes
+from .dashboard_routes import router as dashboard_routes
 from .dependencies import get_current_user
 from .responses import INVALID_TOKEN_RESPONSE
+from .transaction_routes import router as transaction_routes
 from .user_routes import router as user_routes
 
 app_router = APIRouter(prefix="/api/v1")
@@ -40,7 +45,11 @@ private_router = APIRouter(
     responses={401: INVALID_TOKEN_RESPONSE},
 )
 
-# Inclua aqui os roteadores de domínio, por exemplo:
-# private_router.include_router(accounts_routes)
+# Roteadores de domínio (cada um define o próprio prefixo).
+private_router.include_router(category_routes)
+private_router.include_router(bank_account_routes)
+private_router.include_router(card_routes)
+private_router.include_router(transaction_routes)
+private_router.include_router(dashboard_routes)
 
 app_router.include_router(private_router)

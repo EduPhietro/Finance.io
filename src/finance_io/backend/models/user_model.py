@@ -91,42 +91,42 @@ class UserModel(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="select",
     )
 
     categories: Mapped[list["CategoryModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="select",
     )
 
     bank_accounts: Mapped[list["BankAccountModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="select",
     )
 
     installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="select",
     )
 
     recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="select",
     )
 
     transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="select",
     )
 
     system_categories = lambda: relationship(
