@@ -188,7 +188,8 @@ Os serviços ficam disponíveis apenas no host local:
 
 - PostgreSQL: `127.0.0.1:54320`;
 - Redis: `127.0.0.1:6379`;
-- API: `http://127.0.0.1:8000` (documentação em `/docs`).
+- API: `http://127.0.0.1:8000` (documentação em `/docs`);
+- aplicação web: `http://127.0.0.1:8080`.
 
 A API só inicia depois que PostgreSQL e Redis ficam saudáveis. Para acompanhar
 os logs:
@@ -237,7 +238,8 @@ Revise o arquivo gerado antes de executar `upgrade head`.
 
 ### 4. Frontend
 
-Em outro terminal:
+O Docker Compose disponibiliza o build da aplicação em `http://127.0.0.1:8080`.
+Para desenvolvimento com recarregamento automático, execute em outro terminal:
 
 ```bash
 cd src/finance_io/frontend

@@ -2,6 +2,12 @@
 
 Interface React para o Finance.io. Inclui cadastro e autenticação, gerenciamento de contas, categorias e cartões, receitas e despesas, histórico, recorrências, parcelamentos, agenda e painel financeiro.
 
+## Executar com Docker Compose
+
+Com o `.env` da raiz configurado, execute `docker compose up -d --build` na
+raiz do projeto e abra [http://localhost:8080](http://localhost:8080). O Nginx
+serve o build do React e encaminha `/api` para o serviço `api` do Compose.
+
 ## Desenvolvimento local
 
 Use Node.js 20.19+ ou 22.12+ e npm. Inicie a API, o PostgreSQL e o Redis conforme as instruções do [README da raiz](../../../README.md). Dentro deste diretório, execute:
