@@ -56,3 +56,8 @@ dist-ssr
 .coverage
 .coverage.*
 htmlcov
+
+# Materiais locais de trabalho
+/finance-io-mvp.bundle
+/opencode-tarefas.md
+/remove-rotas-legadas.patch

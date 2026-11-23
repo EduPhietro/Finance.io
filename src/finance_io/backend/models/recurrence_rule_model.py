@@ -137,7 +137,7 @@ class RecurrenceRuleModel(Base):
 
     transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="recurrence_rule",
-        lazy="selectin",
+        lazy="select",
     )
 
     __table_args__ = (

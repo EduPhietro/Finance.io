@@ -113,7 +113,7 @@ class InstallmentPlanModel(Base):
 
     transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="installment_plan",
-        lazy="selectin",
+        lazy="select",
     )
 
     __table_args__ = (

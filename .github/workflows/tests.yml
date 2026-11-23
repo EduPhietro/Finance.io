@@ -54,3 +54,22 @@ jobs:
 
       - name: Rodar testes
         run: uv run pytest --cov=finance_io.backend --cov-report=term-missing
+
+  frontend:
+    name: lint e build (frontend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/finance_io/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/finance_io/frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

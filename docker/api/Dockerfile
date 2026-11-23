@@ -17,8 +17,11 @@ COPY pyproject.toml uv.lock ./
 # Instala as dependências
 RUN uv sync --locked --no-dev --no-install-project
 
-# Copia a aplicação
-COPY . .
+# Copia os arquivos necessários para instalar e executar a API.
+COPY README.md alembic.ini ./
+COPY migrations ./migrations
+COPY src/finance_io/__init__.py ./src/finance_io/__init__.py
+COPY src/finance_io/backend ./src/finance_io/backend
 
 # Sincroniza o projeto
 RUN uv sync --locked --no-dev

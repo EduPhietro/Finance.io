@@ -14,7 +14,8 @@ from sqlalchemy import (
     String,
     func,
     CheckConstraint,
-    UniqueConstraint,
+    Index,
+    text,
     Boolean,
     DateTime,
 )
@@ -92,22 +93,22 @@ class BankAccountModel(Base):
         back_populates="bank_account",
         cascade="all, delete-orphan",
         passive_deletes=True,
-        lazy="selectin",
+        lazy="select",
     )
 
     installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
         back_populates="account",
-        lazy="selectin",
+        lazy="select",
     )
 
     recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
         back_populates="account",
-        lazy="selectin",
+        lazy="select",
     )
 
     transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="account",
-        lazy="selectin",
+        lazy="select",
     )
 
     __table_args__ = (
@@ -127,11 +128,15 @@ class BankAccountModel(Base):
             "identification_color ~ '^#[0-9A-Fa-f]{6}$'",
             name="check_indetification_color_format",
         ),
-        UniqueConstraint(
+        # A mesma conta (banco, agência e número) não pode ser cadastrada duas
+        # vezes pelo usuário, mas pode ser recadastrada depois de excluída.
+        Index(
+            "unique_active_account_per_user",
             "user_id",
             "bank_name",
             "branch_number",
             "account_number",
-            name="unique_account_per_user",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
         ),
     )

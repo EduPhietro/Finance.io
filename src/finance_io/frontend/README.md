@@ -1,58 +1,25 @@
 # Frontend do Finance.io
 
-Interface web do Finance.io construída com React, Vite e Tailwind CSS.
+Interface React para o Finance.io. Inclui cadastro e autenticação, gerenciamento de contas, categorias e cartões, receitas e despesas, histórico, recorrências, parcelamentos, agenda e painel financeiro.
 
-## Estado atual
+## Desenvolvimento local
 
-A aplicação contém telas responsivas de login e cadastro, alternância entre as
-telas e validação local dos campos. Ainda não existe roteamento por URL nem
-integração com a API; os envios válidos exibem apenas uma mensagem de estado.
-
-## Pré-requisitos
-
-- Node.js 20.19 ou superior (ou 22.12 ou superior), conforme exigido pelo
-  Vite 8;
-- npm.
-
-## Desenvolvimento
-
-Dentro deste diretório, instale as dependências bloqueadas no
-`package-lock.json` e inicie o servidor:
+Use Node.js 20.19+ ou 22.12+ e npm. Inicie a API, o PostgreSQL e o Redis conforme as instruções do [README da raiz](../../../README.md). Dentro deste diretório, execute:
 
 ```bash
 npm ci
 npm run dev
 ```
 
-O endereço local, normalmente `http://localhost:5173`, será exibido pelo Vite.
+Abra o endereço exibido pelo Vite, normalmente `http://localhost:5173`. O servidor de desenvolvimento encaminha `/api` para a API em `http://127.0.0.1:8000`.
 
-## Scripts
+## Build
 
-| Comando | Finalidade |
-|---|---|
-| `npm run dev` | Inicia o servidor de desenvolvimento com atualização automática. |
-| `npm run lint` | Executa as regras do ESLint. |
-| `npm run build` | Gera a versão de produção em `dist/`. |
-| `npm run preview` | Serve localmente o conteúdo gerado pelo build. |
-
-## Estrutura
-
-```text
-frontend/
-├── public/                # arquivos públicos e ícones
-├── src/
-│   ├── assets/            # imagens importadas pela aplicação
-│   ├── pages/
-│   │   ├── Cadastro.jsx   # formulário de criação de conta
-│   │   └── Login.jsx      # formulário de acesso
-│   ├── App.jsx            # alternância entre as telas
-│   ├── App.css
-│   ├── index.css          # estilos globais e Tailwind CSS
-│   └── main.jsx           # montagem da aplicação React
-├── eslint.config.js
-├── package.json
-└── vite.config.js
+```bash
+npm run lint
+npm run build
 ```
 
-Para preparar todo o projeto, incluindo banco de dados e migrações, consulte o
-[`README.md` da raiz](../../../README.md).
+Sirva `dist/` como aplicação SPA, encaminhando rotas do frontend para `index.html` e as chamadas `/api` para o backend. Use `VITE_API_URL` antes do build se a API estiver em outro caminho ou origem. Em uma origem diferente, a API precisa permitir a origem do frontend por CORS.
+
+O contrato das rotas está em [docs/api-financeiro.md](../../../docs/api-financeiro.md).

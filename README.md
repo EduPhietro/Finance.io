@@ -4,13 +4,9 @@ Aplicação acadêmica de gestão financeira pessoal. O produto pretende reunir
 contas, cartões, categorias e movimentações em uma visão simples da vida
 financeira do usuário.
 
-> **Status:** em desenvolvimento. A camada de dados possui modelos e migrações
-> para usuários, endereços, categorias (com carga inicial), contas bancárias,
-> cartões, planos de parcelamento, regras de recorrência e transações.
-> A API FastAPI já expõe cadastro e login de usuários com token JWT. O frontend
-> contém as telas de login e cadastro, mas ainda não está integrado à API.
+> **Status:** MVP de gestão financeira pessoal com API FastAPI e interface React.
 
-## Funcionalidades previstas para o MVP
+## Funcionalidades do MVP
 
 - cadastro e manutenção de contas bancárias e cartões;
 - registro de receitas e despesas pontuais ou recorrentes;
@@ -57,11 +53,17 @@ Todas as rotas usam o prefixo `/api/v1`:
 | `POST` | `/api/v1/auth/login` | Autentica por e-mail **ou** username e senha e emite o token de acesso | `200`, `401` (credenciais inválidas), `422` |
 | `POST` | `/api/v1/auth/logout` | Encerra a sessão revogando o token enviado (Bearer) | `204`, `401`, `503` (Redis indisponível) |
 | `GET` | `/api/v1/auth/me` | Retorna o usuário autenticado (Bearer) | `200`, `401` |
+| `GET` `POST` | `/api/v1/categories` | Lista (sistema + usuário) e cria categorias personalizadas (Bearer) | `200`/`201`, `401`, `409`, `422` |
+| `GET` `PATCH` `DELETE` | `/api/v1/categories/{id}` | Consulta, altera/desativa e exclui categorias (Bearer) | `200`/`204`, `401`, `403`, `404`, `409`, `422` |
+| `GET` `POST` | `/api/v1/bank-accounts` | Lista (com saldo atual) e cadastra contas bancárias (Bearer) | `200`/`201`, `401`, `409`, `422` |
+| `GET` | `/api/v1/bank-accounts/balances` | Saldo por conta e saldo consolidado das contas ativas (Bearer) | `200`, `401` |
+| `GET` `PATCH` `DELETE` | `/api/v1/bank-accounts/{id}` | Consulta, altera/desativa e exclui contas sem movimentações (Bearer) | `200`/`204`, `401`, `404`, `409`, `422` |
 | `POST` | `/api/v1/user` | **Obsoleta**: use `/auth/register` | `201`, `409`, `422` |
 | `POST` | `/api/v1/user/login` | **Obsoleta**: use `/auth/login` (mantém o formato antigo do token) | `200`, `401`, `422` |
 
 O contrato completo (corpos, regras, formato de erro e como proteger novas
-rotas) está em [`docs/api-auth.md`](docs/api-auth.md).
+rotas) está em [`docs/api-auth.md`](docs/api-auth.md). As rotas financeiras
+estão descritas em [`docs/api-financeiro.md`](docs/api-financeiro.md).
 
 Regras já aplicadas:
 
@@ -103,12 +105,12 @@ cadastro, login, `/auth/me` e logout (`cd bruno && bru run auth --env local`).
 
 ### Frontend
 
-- aplicação React com Vite e Tailwind CSS;
-- telas responsivas de login e cadastro;
-- validação local dos formulários e alternância entre as duas telas.
+- cadastro, login e encerramento da sessão integrados à API;
+- telas de contas bancárias, cartões, categorias, receitas e despesas;
+- histórico com filtros, programação de recorrências e compras parceladas;
+- agenda mensal e painel com saldos e movimentações reais.
 
-Os formulários ainda não chamam a API; os envios válidos exibem apenas uma
-mensagem de estado.
+O contrato das rotas de negócio está em [`docs/api-financeiro.md`](docs/api-financeiro.md).
 
 ## Tecnologias
 
@@ -337,7 +339,7 @@ em pushes e pull requests para `main`.
 ## Próximos passos
 
 1. Integrar os formulários de login e cadastro do frontend à API.
-2. Expor rotas para contas, cartões, categorias e transações (registradas no
+2. Expor rotas para cartões e transações (registradas no
    `private_router`).
 3. Implementar as regras de recorrência, parcelamento e limite de cartão.
 4. Criar testes automatizados para backend e frontend.

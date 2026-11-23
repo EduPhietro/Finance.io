@@ -1,16 +1,24 @@
 import { useState } from 'react'
-import { Wallet, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Wallet, Mail, Lock } from 'lucide-react'
 import { autenticarUsuario } from '../services/api'
 
+import Input, { PasswordInput } from '../components/ui/Input'
+import Button from '../components/ui/Button'
+
 function Login({ onNavigate }) {
-  const [mostrarSenha, setMostrarSenha] = useState(false)
   const [form, setForm] = useState({
       email: '',
       senha: ''
     })
 
-  function validarEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  function validarIdentificador(valor) {
+  const identificador = valor.trim()
+
+  if (identificador.includes('@')) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
+  }
+
+  return /^[A-Za-z0-9._]{3,100}$/.test(identificador)
 }
 
   const [erros, setErros] = useState({})
@@ -29,12 +37,14 @@ function Login({ onNavigate }) {
     const novosErros = { ...prev }
 
     if (name === 'email') {
-      if (validarEmail(value)) {
-        delete novosErros.email
-      } else if (value.trim()) {
-        novosErros.email = 'Digite um e-mail válido.'
-      }
-    }
+  if (validarIdentificador(value)) {
+    delete novosErros.email
+  } else if (value.trim()) {
+    novosErros.email = 'Informe um e-mail ou nome de usuário válido.'
+  } else {
+    delete novosErros.email
+  }
+}
 
     if (name === 'senha' && value) {
       delete novosErros.senha
@@ -54,10 +64,10 @@ async function handleSubmit(event) {
   const novosErros = {}
 
   if (!form.email.trim()) {
-    novosErros.email = 'Informe seu e-mail.'
-  } else if (!validarEmail(form.email)) {
-    novosErros.email = 'Digite um e-mail válido.'
-  }
+  novosErros.email = 'Informe seu e-mail ou nome de usuário.'
+} else if (!validarIdentificador(form.email)) {
+  novosErros.email = 'Informe um e-mail ou nome de usuário válido.'
+}
 
   if (!form.senha) {
     novosErros.senha = 'Informe sua senha.'
@@ -73,7 +83,7 @@ async function handleSubmit(event) {
   try {
     setCarregando(true)
 
-    
+
       const resultado = await autenticarUsuario(form)
 
       if (!resultado.access_token || !Number.isFinite(Number(resultado.expires_in))) {
@@ -150,72 +160,34 @@ async function handleSubmit(event) {
             className="space-y-4"
           >
 
-            {/* E-mail */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                E-mail
-              </label>
 
-              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
-                  erros.email ? 'border-red-500' : 'border-gray-200'
-                }`}>
-                <Mail size={18} className="text-gray-400" />
+                  {/* E-mail ou username */}
+                  <Input
+                    label="E-mail ou nome de usuário"
+                    type="text"
+                    name="email"
+                    icon={Mail}
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="seuemail@exemplo.com ou usuario"
+                    autoComplete="username"
+                    error={erros.email}
+                    required
+                  />
 
-                <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="seuemail@exemplo.com"
-                className="w-full py-3.5 outline-none bg-transparent text-sm"
-              />
-              </div>
+                  {/* Senha */}
+                  <PasswordInput
+                    label="Senha"
+                    name="senha"
+                    icon={Lock}
+                    value={form.senha}
+                    onChange={handleChange}
+                    placeholder="Digite sua senha"
+                    autoComplete="current-password"
+                    error={erros.senha}
+                    required
+                  />
 
-              {erros.email && (
-              <p className="text-red-500 text-xs mt-1">
-                {erros.email}
-              </p>
-            )}
-
-            </div>
-
-            {/* Senha */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Senha
-              </label>
-
-              <div className={`flex items-center gap-3 border rounded-lg px-4 bg-white transition-colors ${
-                erros.senha ? 'border-red-500' : 'border-gray-200'
-              }`}>
-                <Lock size={18} className="text-gray-400" />
-
-                <input
-              type={mostrarSenha ? 'text' : 'password'}
-              name="senha"
-              value={form.senha}
-              onChange={handleChange}
-              placeholder="Digite sua senha"
-              className="w-full py-3.5 outline-none bg-transparent text-sm"
-            />
-
-          <button
-            type="button"
-            onClick={() => setMostrarSenha(!mostrarSenha)}
-            className="text-gray-400 hover:text-[#008A68]"
-            aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-          >
-          {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
-              </div>
-
-              {erros.senha && (
-                <p className="text-red-500 text-xs mt-1">
-                  {erros.senha}
-                </p>
-              )}
-
-            </div>
 
             {/* Recuperação de senha */}
             <div className="flex justify-end">
@@ -228,13 +200,13 @@ async function handleSubmit(event) {
             </div>
 
             {/* Botão */}
-              <button
-                type="submit"
-                disabled={carregando}
-                className="w-full bg-[#008A68] hover:bg-[#075640] disabled:opacity-60 text-white font-semibold py-3.5 rounded-lg transition"
-              >
-                {carregando ? 'Entrando...' : 'Entrar'}
-            </button>
+            <Button
+              type="submit"
+              loading={carregando}
+              className="w-full py-3.5"
+            >
+              {carregando ? 'Entrando...' : 'Entrar'}
+            </Button>
 
             {mensagem && (
             <p className="text-red-600 text-sm text-center">
@@ -243,7 +215,7 @@ async function handleSubmit(event) {
           )}
 
           </form>
-          
+
           <p className="text-center text-sm text-gray-500 mt-8">
             Ainda não tem uma conta?{' '}
             <button

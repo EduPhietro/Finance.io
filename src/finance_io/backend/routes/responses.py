@@ -141,3 +141,33 @@ SESSION_STORE_UNAVAILABLE_RESPONSE = _error_response(
         }
     },
 )
+
+
+def single_error_response(description: str, detail: str) -> dict[str, Any]:
+    """Documenta uma resposta de erro com um único exemplo.
+
+    Atalho usado pelas rotas dos recursos financeiros, cujos erros de regra
+    de negócio têm apenas ``detail``.
+
+    Args:
+        description: Texto exibido ao lado do código HTTP no ``/docs``.
+        detail: Mensagem de exemplo devolvida pela API.
+    """
+
+    return _error_response(
+        description, {"exemplo": {"summary": description, "value": {"detail": detail}}}
+    )
+
+
+VALIDATION_RESPONSE = _error_response(
+    "Dados inválidos",
+    {
+        "campo_invalido": {
+            "summary": "Campo inválido",
+            "value": {
+                "detail": "Dados inválidos",
+                "errors": [{"field": "amount", "message": "Deve ser maior que 0"}],
+            },
+        }
+    },
+)

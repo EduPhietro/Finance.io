@@ -106,17 +106,17 @@ class CardModel(Base):
 
     installment_plans: Mapped[list["InstallmentPlanModel"]] = relationship(
         back_populates="card",
-        lazy="selectin",
+        lazy="select",
     )
 
     recurrence_rules: Mapped[list["RecurrenceRuleModel"]] = relationship(
         back_populates="card",
-        lazy="selectin",
+        lazy="select",
     )
 
     transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="card",
-        lazy="selectin",
+        lazy="select",
     )
 
     __table_args__ = (
