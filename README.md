@@ -283,6 +283,28 @@ curl http://localhost:8000/api/v1/auth/me \
   -H "Authorization: Bearer <access_token>"
 ```
 
+## Testes
+
+Os testes do backend ficam em `tests/` e usam pytest. Eles precisam de um
+PostgreSQL 18 em execução (o mesmo do `docker compose up -d postgres` serve);
+o Redis **não** é necessário, pois os testes usam `fakeredis`.
+
+```bash
+uv sync                      # instala também as dependências de desenvolvimento
+uv run pytest                # roda a suíte
+uv run pytest --cov=finance_io.backend --cov-report=term-missing   # com cobertura
+```
+
+Os testes usam um banco dedicado, definido por `TEST_DATABASE_URL`. Sem essa
+variável, é usado o mesmo servidor de `DATABASE_URL` (ambiente ou `.env`) com o
+banco `finance_test`. O banco é criado se não existir e recebe
+`alembic upgrade head` no início da sessão; cada teste roda em uma transação
+desfeita ao final, então nenhum dado permanece. O banco de desenvolvimento
+nunca é usado pelos testes.
+
+O workflow `.github/workflows/tests.yml` roda a mesma suíte no GitHub Actions
+em pushes e pull requests para `main`.
+
 ## Estrutura do repositório
 
 ```text
