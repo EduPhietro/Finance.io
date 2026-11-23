@@ -53,8 +53,15 @@ Todas as rotas usam o prefixo `/api/v1`:
 
 | Método | Rota | Descrição | Respostas |
 |---|---|---|---|
-| `POST` | `/api/v1/user` | Cadastra um usuário | `201`, `409` (e-mail ou username já cadastrado), `422` |
-| `POST` | `/api/v1/user/login` | Autentica por e-mail **ou** username e senha | `200`, `401` (credenciais inválidas), `422` |
+| `POST` | `/api/v1/auth/register` | Cadastra um usuário | `201`, `409` (e-mail ou username já cadastrado), `422` |
+| `POST` | `/api/v1/auth/login` | Autentica por e-mail **ou** username e senha e emite o token de acesso | `200`, `401` (credenciais inválidas), `422` |
+| `POST` | `/api/v1/auth/logout` | Encerra a sessão revogando o token enviado (Bearer) | `204`, `401`, `503` (Redis indisponível) |
+| `GET` | `/api/v1/auth/me` | Retorna o usuário autenticado (Bearer) | `200`, `401` |
+| `POST` | `/api/v1/user` | **Obsoleta**: use `/auth/register` | `201`, `409`, `422` |
+| `POST` | `/api/v1/user/login` | **Obsoleta**: use `/auth/login` (mantém o formato antigo do token) | `200`, `401`, `422` |
+
+O contrato completo (corpos, regras, formato de erro e como proteger novas
+rotas) está em [`docs/api-auth.md`](docs/api-auth.md).
 
 Regras já aplicadas:
 
@@ -67,25 +74,32 @@ Regras já aplicadas:
   incorreta, evitando a enumeração de contas;
 - o token JWT é assinado com `HS256` usando `JWT_SECRET_TOKEN`, expira em 12
   horas e contém apenas as claims `sub` (id do usuário), `iat`, `exp` e `jti`;
-- a resposta do login tem o formato
-  `{"token": "...", "exp": 43200, "type": "Bearer"}`;
+- a resposta do login tem o formato OAuth2
+  `{"access_token": "...", "token_type": "bearer", "expires_in": 43200}`;
+- o logout revoga apenas o token enviado, guardando o `jti` no Redis até o
+  horário em que o token expiraria;
+- todos os erros seguem o formato `{"detail": "...", "errors": [...]}`, em que
+  `errors` só aparece em erros de validação (`422`);
 - usuários excluídos recebem exclusão lógica (`deleted_at`) e deixam de ser
   encontrados nas consultas. A exclusão existe no service e no repository, mas
   ainda não há rota HTTP para ela.
 
-Ainda não existem rotas protegidas: o token é emitido, mas nenhuma rota o
-valida por enquanto. O Redis está configurado, mas ainda não é usado pela
-aplicação.
+As rotas privadas exigem o cabeçalho `Authorization: Bearer <access_token>` e
+respondem `401` quando o token está ausente, inválido, expirado ou revogado.
+Toda rota registrada no `private_router` (`routes/base_router.py`) é protegida
+automaticamente.
 
-A documentação interativa fica disponível com a API em execução:
+A documentação interativa fica disponível com a API em execução. No Swagger UI,
+faça login em `/auth/login`, clique em **Authorize** e cole o `access_token`
+para testar as rotas com cadeado:
 
 - Swagger UI: `http://localhost:8000/docs`;
 - ReDoc: `http://localhost:8000/redoc`;
 - esquema OpenAPI: `http://localhost:8000/openapi.json`.
 
 A pasta `bruno/` contém uma coleção do [Bruno](https://www.usebruno.com/) com o
-ambiente `local` (`http://localhost:8000/api/v1`) e uma requisição de cadastro
-com testes de resposta.
+ambiente `local` (`http://localhost:8000/api/v1`) e a pasta `auth/`, que cobre
+cadastro, login, `/auth/me` e logout (`cd bruno && bru run auth --env local`).
 
 ### Frontend
 
@@ -253,16 +267,20 @@ uv run fastapi dev src/finance_io/backend/main.py
 Nesse modo, a aplicação usa os valores do `.env`, que apontam para as portas
 publicadas no host.
 
-Exemplo de cadastro e login com `curl`:
+Exemplo de cadastro, login e rota privada com `curl`:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/user \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"full_name": "Joana Silva", "username": "joana.silva", "email": "joana@example.com", "password": "Senha@123"}'
 
-curl -X POST http://localhost:8000/api/v1/user/login \
+curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "joana.silva", "password": "Senha@123"}'
+# {"access_token": "eyJhbGciOiJIUzI1NiIs...", "token_type": "bearer", "expires_in": 43200}
+
+curl http://localhost:8000/api/v1/auth/me \
+  -H "Authorization: Bearer <access_token>"
 ```
 
 ## Estrutura do repositório
@@ -296,12 +314,12 @@ curl -X POST http://localhost:8000/api/v1/user/login \
 
 ## Próximos passos
 
-1. Validar o token JWT e proteger as rotas que acessam dados do usuário.
-2. Integrar os formulários de login e cadastro do frontend à API.
-3. Expor rotas para contas, cartões, categorias e transações.
-4. Implementar as regras de recorrência, parcelamento e limite de cartão.
-5. Criar testes automatizados para backend e frontend.
-6. Implementar histórico, agenda e painel financeiro.
+1. Integrar os formulários de login e cadastro do frontend à API.
+2. Expor rotas para contas, cartões, categorias e transações (registradas no
+   `private_router`).
+3. Implementar as regras de recorrência, parcelamento e limite de cartão.
+4. Criar testes automatizados para backend e frontend.
+5. Implementar histórico, agenda e painel financeiro.
 
 Consulte o [índice da documentação](docs/README.md) para conhecer as fontes de
 requisitos e sua ordem de precedência.

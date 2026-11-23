@@ -99,17 +99,39 @@ e `WWW-Authenticate: Bearer` quando:
 
 A mensagem é sempre a mesma, para não revelar o motivo exato.
 
-No backend, uma rota fica privada ao declarar o usuário atual:
+No `/docs`, faça login em `/auth/login`, clique em **Authorize** e cole o
+`access_token` (sem o prefixo `Bearer`) para testar as rotas privadas, que
+aparecem com cadeado.
+
+### Protegendo uma nova rota
+
+`routes/base_router.py` separa as rotas em dois grupos dentro de `/api/v1`:
+
+- públicas: `/auth/*` e as rotas obsoletas `/user`;
+- privadas: tudo o que for incluído no `private_router`, que aplica a
+  dependência `get_current_user` a todas as suas rotas e documenta o `401`.
+
+Um novo roteador de domínio define o próprio prefixo e é incluído no
+`private_router`, no ponto indicado em `base_router.py`:
 
 ```python
-from finance_io.backend.routes.dependencies import CurrentUser
+# routes/accounts_routes.py
+router = APIRouter(prefix="/accounts", tags=["Contas"])
 
-@router.get("/accounts")
+@router.get("")
 def list_accounts(user: CurrentUser): ...
+
+# routes/base_router.py
+from .accounts_routes import router as accounts_routes
+
+private_router.include_router(accounts_routes)
 ```
 
-No `/docs`, clique em **Authorize** e cole o `access_token` para testar as rotas
-privadas.
+Todas as rotas desse roteador passam a exigir o token, mesmo as que não
+declaram `CurrentUser`. Declare `user: CurrentUser` quando a rota precisar do
+usuário; o FastAPI reaproveita a mesma dependência na requisição, sem consultar
+o banco duas vezes. Rotas públicas novas devem ser incluídas direto no
+`app_router`, nunca no `private_router`.
 
 ### Logout — `POST /auth/logout`
 

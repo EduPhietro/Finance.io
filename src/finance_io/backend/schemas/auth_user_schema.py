@@ -25,7 +25,15 @@ class AuthenticateUserSchema(BaseModel):
             qualquer campo não atender às regras.
     """
 
-    model_config = ConfigDict(regex_engine="python-re")
+    model_config = ConfigDict(
+        regex_engine="python-re",
+        json_schema_extra={
+            "examples": [
+                {"email": "maria@example.com", "password": "Senha@123"},
+                {"username": "maria.silva", "password": "Senha@123"},
+            ]
+        },
+    )
 
     username: str | None = Field(
         default=None,
@@ -37,7 +45,7 @@ class AuthenticateUserSchema(BaseModel):
 
     email: EmailStr | None = Field(default=None, examples=["joao@example.com"])
 
-    password: str = Field(min_length=1, max_length=72)
+    password: str = Field(min_length=1, max_length=72, examples=["Senha@123"])
 
     @field_validator("username", mode="before")
     @classmethod
